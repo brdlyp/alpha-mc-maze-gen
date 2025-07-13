@@ -124,6 +124,24 @@
             <input type="checkbox" data-for="addRoof"> Add ceiling/roof on top of maze
           </label>
         </div>
+        <!-- Maze Options (new) -->
+        <div class="box content">
+          <label class="checkbox">
+            <input type="checkbox" data-for="generateHoles" checked>
+            Generate holes between levels
+          </label>
+          <div class="field" style="margin-top: 10px;">
+            <label class="label">Number of holes per level</label>
+            <div class="control">
+              <input class="input" type="number" min="1" max="100" value="1" data-for="holesPerLevel">
+            </div>
+          </div>
+          <label class="checkbox" style="margin-top: 10px;">
+            <input type="checkbox" data-for="generateLadders" checked>
+            Generate ladders for holes
+          </label>
+        </div>
+        <!-- End Maze Options -->
         <div class="box content">
           <strong>File naming options:</strong>
           <div class="field">
@@ -157,10 +175,14 @@
           </label>
         </div>
         <div class="box">
-          <button class="button is-primary">Download function</button>
+          <div class="buttons">
+            <button class="button is-info" onclick="refreshDisplay()">Refresh</button>
+            <button class="button is-warning" onclick="regenerateMaze()">Regenerate</button>
+            <button class="button is-primary">Download function</button>
+          </div>
         </div>
         <div class="box">
-          <p class="help">Version: 2.0.29</p>
+          <p class="help">Version: 2.0.63</p>
         </div>
         <div class="box">
           <h4 class="title is-6">Credits</h4>
@@ -197,12 +219,23 @@
             <div class="legend" style="margin-top: 20px; display: flex; justify-content: center; gap: 20px;">
               <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
                 <div class="legend-color yellow" style="width: 20px; height: 20px; border: 1px solid #666; background: #ffff00;"></div>
-                <span>Access Up</span>
+                <span>Hole + Ladder (Up)</span>
               </div>
               <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
                 <div class="legend-color blue" style="width: 20px; height: 20px; border: 1px solid #666; background: #87ceeb;"></div>
-                <span>Access Down</span>
+                <span>Hole + Ladder (Down)</span>
               </div>
+              <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
+                <div class="legend-color red" style="width: 20px; height: 20px; border: 1px solid #666; background: #ffaaaa;"></div>
+                <span>Hole Only (Up)</span>
+              </div>
+              <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
+                <div class="legend-color purple" style="width: 20px; height: 20px; border: 1px solid #666; background: #aaaaff;"></div>
+                <span>Hole Only (Down)</span>
+              </div>
+            </div>
+            <div style="margin-top: 10px; font-size: 12px; color: #666; text-align: center;">
+              <strong>Note:</strong> Indicators show hole locations (center of cells). Ladders are placed on adjacent walls.
             </div>
           </div>
         </div>

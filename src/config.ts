@@ -9,7 +9,10 @@ let config = {
   includeSides: true,
   addRoof: false,
   showBlockLegend: true,
-  showChunkBorders: false
+  showChunkBorders: false,
+  generateHoles: true, // Enable/disable generation of holes between levels
+  holesPerLevel: 1,    // Number of holes per level
+  generateLadders: true // Enable/disable ladder generation for holes
 }
 
 config = new Proxy(config, {
