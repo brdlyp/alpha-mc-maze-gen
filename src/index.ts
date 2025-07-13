@@ -431,13 +431,11 @@ function draw() {
 
 function generateCommand() {
   if (!mazeGenerator) return;
-  
+
   let { wallSize, wallHeight, walkSize, block, levels } = config;
-  
-  // MineCraft... 0 wallSize = 1 block
-  wallSize--;
-  walkSize--;
-  wallHeight--;
+
+  // Use user values directly
+  // Each level: floor (1), walls (wallHeight), so total per level = 1 + wallHeight
 
   const commands: string[] = [
     `# Multi-Level Maze Generator\n`,
@@ -445,73 +443,141 @@ function generateCommand() {
     `# Dimensions: ${mazeGenerator.width}x${mazeGenerator.height}\n\n`
   ];
 
-  // Generate commands for each level
+  // Calculate maze dimensions in blocks
+  // For a maze of N cells, there are N+1 walls in each direction
   for (let level = 0; level < levels; level++) {
     commands.push(`# Level ${level + 1}\n`);
-    
     const maze = mazeGenerator.mazes[level];
     if (!maze) continue;
-    
-    // Clear level
-    const clearSize = Math.floor(Math.sqrt(32768 / (wallHeight + 1)));
-    const levelY = level * (wallHeight + 1);
-    
-    for (let y = 0; y < maze.height; y += clearSize) {
-      for (let x = 0; x < maze.width; x += clearSize) {
-        const xMax = Math.min(x + clearSize, maze.width);
-        const yMax = Math.min(y + clearSize, maze.height);
-        commands.push(`fill ~${x} ~${levelY} ~${y} ~${xMax - 1} ~${levelY + wallHeight} ~${yMax - 1} air\n`);
-      }
-    }
-    
-    // Fill maze blocks
-    for (let y = 0; y < maze.height; y++) {
-      for (let x = 0; x < maze.width; x++) {
-        const cell = maze.grid[y][x];
-        const hasNorth = (cell.walls & mazeGenerator.NORTH) !== 0;
-        const hasSouth = (cell.walls & mazeGenerator.SOUTH) !== 0;
-        const hasEast = (cell.walls & mazeGenerator.EAST) !== 0;
-        const hasWest = (cell.walls & mazeGenerator.WEST) !== 0;
-        
-        // If it's a wall (no passages), fill it
-        if (!hasNorth && !hasSouth && !hasEast && !hasWest) {
-          commands.push(`fill ~${x} ~${levelY} ~${y} ~${x} ~${levelY + wallHeight} ~${y} ${block}\n`);
+    // Y coordinate for this level
+    const levelY = level * (1 + wallHeight); // floor + wallHeight, no air gap
+    const mazeWidth = maze.width;
+    const mazeHeight = maze.height;
+    const totalWidth = mazeWidth * walkSize + (mazeWidth + 1) * wallSize;
+    const totalHeight = mazeHeight * walkSize + (mazeHeight + 1) * wallSize;
+    const floorY = levelY;
+    const wallTopY = levelY + wallHeight; // wallHeight blocks above floor
+
+    // 1. Clear the area for this level
+    commands.push(`fill ~0 ~${floorY} ~0 ~${totalWidth - 1} ~${wallTopY} ~${totalHeight - 1} air\n`);
+
+    // 2. Fill the floor (1 block thick)
+    commands.push(`fill ~0 ~${floorY} ~0 ~${totalWidth - 1} ~${floorY} ~${totalHeight - 1} stone\n`);
+
+    // 3. Build walls
+    // Place all vertical (north-south) walls
+    for (let x = 0; x <= mazeWidth; x++) {
+      for (let y = 0; y < mazeHeight; y++) {
+        // If this is a wall (either left of cell or rightmost border)
+        if (x === mazeWidth || (x > 0 && (maze.grid[y][x - 1].walls & mazeGenerator.EAST) === 0)) {
+          const wx = x * (walkSize + wallSize);
+          const wz = y * (walkSize + wallSize) + wallSize;
+          commands.push(`fill ~${wx} ~${floorY + 1} ~${wz} ~${wx + wallSize - 1} ~${wallTopY} ~${wz + walkSize - 1} ${block}\n`);
         }
       }
     }
-    
-    // Add level transitions
-    for (let y = 0; y < maze.height; y++) {
-      for (let x = 0; x < maze.width; x++) {
+    // Place all horizontal (west-east) walls
+    for (let y = 0; y <= mazeHeight; y++) {
+      for (let x = 0; x < mazeWidth; x++) {
+        // If this is a wall (either above cell or bottom border)
+        if (y === mazeHeight || (y > 0 && (maze.grid[y - 1][x].walls & mazeGenerator.SOUTH) === 0)) {
+          const wx = x * (walkSize + wallSize) + wallSize;
+          const wz = y * (walkSize + wallSize);
+          commands.push(`fill ~${wx} ~${floorY + 1} ~${wz} ~${wx + walkSize - 1} ~${wallTopY} ~${wz + wallSize - 1} ${block}\n`);
+        }
+      }
+    }
+    // Place all wall intersections (pillars)
+    for (let y = 0; y <= mazeHeight; y++) {
+      for (let x = 0; x <= mazeWidth; x++) {
+        const wx = x * (walkSize + wallSize);
+        const wz = y * (walkSize + wallSize);
+        commands.push(`fill ~${wx} ~${floorY + 1} ~${wz} ~${wx + wallSize - 1} ~${wallTopY} ~${wz + wallSize - 1} ${block}\n`);
+      }
+    }
+
+    // 3b. Add solid perimeter walls, with entrance/exit openings
+    // Calculate entrance/exit positions
+    const entranceX = 0;
+    const entranceZ = wallSize + Math.floor(walkSize / 2);
+    const exitX = totalWidth - 1;
+    const exitZ = wallSize + (mazeHeight - 1) * (walkSize + wallSize) + Math.floor(walkSize / 2);
+
+    // North edge (z = 0)
+    for (let x = 0; x < totalWidth; x++) {
+      // Only skip the single entrance block on the first level
+      if (level === 0 && x === entranceX && 0 === entranceZ) continue;
+      commands.push(`fill ~${x} ~${floorY + 1} ~0 ~${x} ~${wallTopY} ~0 ${block}\n`);
+    }
+    // South edge (z = totalHeight - 1)
+    for (let x = 0; x < totalWidth; x++) {
+      commands.push(`fill ~${x} ~${floorY + 1} ~${totalHeight - 1} ~${x} ~${wallTopY} ~${totalHeight - 1} ${block}\n`);
+    }
+    // West edge (x = 0)
+    for (let z = 0; z < totalHeight; z++) {
+      // Only skip the single entrance block on the first level
+      if (level === 0 && 0 === entranceX && z === entranceZ) continue;
+      commands.push(`fill ~0 ~${floorY + 1} ~${z} ~0 ~${wallTopY} ~${z} ${block}\n`);
+    }
+    // East edge (x = totalWidth - 1)
+    for (let z = 0; z < totalHeight; z++) {
+      // Only skip the single exit block on the last level
+      if (level === levels - 1 && totalWidth - 1 === exitX && z === exitZ) continue;
+      commands.push(`fill ~${totalWidth - 1} ~${floorY + 1} ~${z} ~${totalWidth - 1} ~${wallTopY} ~${z} ${block}\n`);
+    }
+
+    // 4. Place ladders for up/down transitions (centered in the path)
+    for (let y = 0; y < mazeHeight; y++) {
+      for (let x = 0; x < mazeWidth; x++) {
         const cell = maze.grid[y][x];
-        
+        // Center of the path cell
+        const px = x * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
+        const pz = y * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
+        // Up ladder (to next level)
         if (cell.hasUp && level < levels - 1) {
-          commands.push(`# Up transition at ${x}, ${y} on level ${level + 1}\n`);
-          // Add ladder or stairs up
-          commands.push(`setblock ~${x} ~${levelY + wallHeight + 1} ~${y} ladder\n`);
+          // Try north wall first
+          if ((cell.walls & mazeGenerator.NORTH) === 0) {
+            commands.push(`setblock ~${px} ~${wallTopY + 1} ~${pz - Math.floor(walkSize / 2) - wallSize} ladder 2\n`);
+          } else if ((cell.walls & mazeGenerator.WEST) === 0) {
+            commands.push(`setblock ~${px - Math.floor(walkSize / 2) - wallSize} ~${wallTopY + 1} ~${pz} ladder 4\n`);
+          }
         }
-        
+        // Down ladder (to previous level)
         if (cell.hasDown && level > 0) {
-          commands.push(`# Down transition at ${x}, ${y} on level ${level + 1}\n`);
-          // Add ladder or stairs down
-          commands.push(`setblock ~${x} ~${levelY - 1} ~${y} ladder\n`);
+          if ((cell.walls & mazeGenerator.SOUTH) === 0) {
+            commands.push(`setblock ~${px} ~${floorY - 1} ~${pz + Math.floor(walkSize / 2) + wallSize} ladder 3\n`);
+          } else if ((cell.walls & mazeGenerator.EAST) === 0) {
+            commands.push(`setblock ~${px + Math.floor(walkSize / 2) + wallSize} ~${floorY - 1} ~${pz} ladder 5\n`);
+          }
         }
       }
     }
-    
+
+    // 5. Explicitly carve entrance and exit holes at the very end (so they are never overwritten)
+    // Carve entrance (west wall, first cell, first level)
+    if (level === 0) {
+      for (let y = floorY + 1; y <= wallTopY; y++) {
+        commands.push(`setblock ~${entranceX} ~${y} ~${entranceZ} air\n`);
+      }
+    }
+    // Carve exit (east wall, last cell, last level)
+    if (level === levels - 1) {
+      for (let y = floorY + 1; y <= wallTopY; y++) {
+        commands.push(`setblock ~${exitX} ~${y} ~${exitZ} air\n`);
+      }
+    }
+
     commands.push('\n');
   }
 
   // Generate filename based on selected naming option
   let filename: string;
   const namingOption = (document.querySelector('input[name="naming"]:checked') as HTMLInputElement)?.value;
-  
   switch (namingOption) {
     case 'simple':
       filename = 'maze.mcfunction';
       break;
     case 'detailed':
-      // Format: <width>x<height>x<levels>maze-<ww#><wh#><pw#><wb"word">.mcfunction
       filename = `${mazeGenerator.width}x${mazeGenerator.height}x${levels}maze-ww${wallSize + 1}wh${wallHeight + 1}pw${walkSize + 1}wb${block}.mcfunction`;
       break;
     case 'custom':
@@ -519,7 +585,6 @@ function generateCommand() {
       if (customName) {
         filename = customName.endsWith('.mcfunction') ? customName : `${customName}.mcfunction`;
       } else {
-        // Fallback to simple if no custom name provided
         filename = 'maze.mcfunction';
       }
       break;
