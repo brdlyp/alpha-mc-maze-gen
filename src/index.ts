@@ -60,7 +60,7 @@ function generateCommand () {
     return
   }
 
-  let { wallSize, wallHeight, walkSize, block } = config
+  let { width, height, wallSize, wallHeight, walkSize, block } = config
   // MineCraft... 0 wallSize = 1 block
   wallSize--
   walkSize--
@@ -92,11 +92,15 @@ function generateCommand () {
     }
   }
 
+  // Generate filename with the specified format
+  // Format: <width>x<height>maze-<ww#><wh#><pw#><wb"word">.mcfunction
+  const filename = `${width}x${height}maze-ww${wallSize + 1}wh${wallHeight + 1}pw${walkSize + 1}wb${block}.mcfunction`
+
   const element = document.body.appendChild(document.createElement('a'))
 
   const commandData = new Blob(commands, { type: 'text/plain' })
   element.href = URL.createObjectURL(commandData)
-  element.setAttribute('download', 'maze.mcfunction')
+  element.setAttribute('download', filename)
   element.style.display = 'none'
   element.click()
   document.body.removeChild(element)
