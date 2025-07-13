@@ -2,8 +2,9 @@ let config = {
   wallSize: 1,
   wallHeight: 3,
   walkSize: 2,
-  width: 15,
-  height: 15,
+  width: 20,
+  height: 20,
+  levels: 3,
   block: 'stone',
   includeSides: true
 }

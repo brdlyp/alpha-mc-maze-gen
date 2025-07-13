@@ -13,27 +13,100 @@
       width: 100%;
       image-rendering: pixelated;
     }
+    
+    .tree-item {
+      cursor: pointer;
+      padding: 5px 10px;
+      margin: 2px 0;
+      border-radius: 3px;
+      transition: background-color 0.2s;
+    }
+    
+    .tree-item:hover {
+      background-color: #e8e8e8;
+    }
+    
+    .tree-item.active {
+      background-color: #3273dc;
+      color: white;
+    }
+    
+    .maze-grid {
+      display: inline-block;
+      border: 2px solid #333;
+      background: #333;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      border-radius: 4px;
+    }
+    
+    .maze-container {
+      display: flex;
+      gap: 20px;
+      margin-top: 20px;
+      min-height: 600px;
+    }
+    
+    .maze-row {
+      display: flex;
+      height: auto;
+    }
+    
+    .maze-cell {
+      width: 20px;
+      height: 20px;
+      border: 1px solid #666;
+      position: relative;
+      flex-shrink: 0;
+      box-sizing: border-box;
+      display: inline-block;
+    }
+    
+    .maze-indicator {
+      width: 20px;
+      height: 10px;
+    }
+    
+    /* Remove media queries - let JavaScript handle dynamic sizing */
+    
+    .maze-cell.wall {
+      background: #777;
+      border: 1px solid #aaa;
+    }
+    
+    .maze-cell.path {
+      background: white;
+      border: 1px solid #ddd;
+    }
+    
+    .maze-indicator.horizontal {
+      background: white;
+    }
+    
+    .maze-indicator.up {
+      background: #ff7;
+    }
+    
+    .maze-indicator.down {
+      background: #7ff;
+    }
   </style>
 </head>
 
 <body>
-  <section class="section">
+    <section class="section">
     <div class="notification is-info is-light">
       <strong>Credits:</strong> This project is based on the original work from <a href="https://github.com/Bibliofile/MinecraftMazeGenerator" target="_blank">github.com/Bibliofile/MinecraftMazeGenerator</a>
     </div>
+    
     <div class="columns">
-      <div class="column">
-        <div class="box content">
-          <strong>Preview:</strong>
-          <canvas></canvas>
-        </div>
-      </div>
       <div class="column is-3">
         <div class="box content">
           <strong>Width (in paths):</strong>
           <input class="input" step="5" min="10" max="100" value="20" type="number" data-for="width">
           <strong>Height (in paths):</strong>
           <input class="input" step="5" min="10" max="100" value="20" type="number" data-for="height">
+          <strong>Levels:</strong>
+          <input class="input" min="1" max="20" value="3" type="number" data-for="levels">
           <strong>Dimensions (blocks):</strong>
           <span data-show="dimensions"></span>
         </div>
@@ -61,20 +134,50 @@
               Detailed: <span data-show="detailed-name">20x20maze-ww2wh4pw2wbstone.mcfunction</span>
             </label>
           </div>
-                      <div class="field">
-              <label class="radio">
-                <input type="radio" name="naming" value="custom">
-                Custom name:
-              </label>
-              <input class="input" placeholder="Enter custom name" data-for="customName">
-              <p class="help" id="customNamePreview" style="display: none;">Preview: <span id="customNameText"></span>.mcfunction</p>
-            </div>
+          <div class="field">
+            <label class="radio">
+              <input type="radio" name="naming" value="custom">
+              Custom name:
+            </label>
+            <input class="input" placeholder="Enter custom name" data-for="customName">
+            <p class="help" id="customNamePreview" style="display: none;">Preview: <span id="customNameText"></span>.mcfunction</p>
+          </div>
         </div>
         <div class="box">
           <button class="button is-primary">Download function</button>
         </div>
         <div class="box">
           <p class="help">Version: {{VERSION}}</p>
+        </div>
+      </div>
+      
+      <div class="column is-9">
+        <div class="maze-container" style="display: flex; gap: 20px; margin-top: 20px;">
+          <div class="tree-view" style="width: 200px; background: #f5f5f5; padding: 15px; border-radius: 5px; max-height: 600px; overflow-y: auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4 class="title is-6">Levels</h4>
+            <div id="treeView"></div>
+          </div>
+          
+          <div class="maze-display" style="flex: 1; text-align: center;">
+            <div class="level-controls" style="margin-bottom: 15px;">
+              <button class="button is-small" onclick="previousLevel()" id="prevBtn">← Previous</button>
+              <span class="mx-3">Level <span id="currentLevel">1</span> of <span id="totalLevels">3</span></span>
+              <button class="button is-small" onclick="nextLevel()" id="nextBtn">Next →</button>
+            </div>
+            
+            <div id="mazeDisplay" style="display: flex; align-items: center; justify-content: center; min-height: 400px; padding: 20px;"></div>
+            
+            <div class="legend" style="margin-top: 20px; display: flex; justify-content: center; gap: 20px;">
+              <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
+                <div class="legend-color yellow" style="width: 20px; height: 20px; border: 1px solid #666; background: #ffff00;"></div>
+                <span>Access Up</span>
+              </div>
+              <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
+                <div class="legend-color blue" style="width: 20px; height: 20px; border: 1px solid #666; background: #87ceeb;"></div>
+                <span>Access Down</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

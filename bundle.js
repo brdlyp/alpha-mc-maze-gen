@@ -1,14 +1,13 @@
 (function () {
   'use strict';
 
-  function t(t,e){var r=Object.keys(t);if(Object.getOwnPropertySymbols){var n=Object.getOwnPropertySymbols(t);e&&(n=n.filter(function(e){return Object.getOwnPropertyDescriptor(t,e).enumerable})),r.push.apply(r,n);}return r}function e(e){for(var n=1;n<arguments.length;n++){var o=null!=arguments[n]?arguments[n]:{};n%2?t(Object(o),true).forEach(function(t){r(e,t,o[t]);}):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(o)):t(Object(o)).forEach(function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(o,t));});}return e}function r(t,e,r){return e in t?Object.defineProperty(t,e,{value:r,enumerable:true,configurable:true,writable:true}):t[e]=r,t}function n(t){return t.slice(0,-1)}function o(t,e=0){return e?Array.from(Array(e-t).keys()).map(e=>e+t):Array.from(Array(t).keys())}function c(t){return [...new Set(t)]}function u(t,e){const r=c(t.map(t=>t.set)).filter(Boolean),n=(u=o(1,t.length+1),f=r,[u,f].reduce((t,e)=>t.filter(t=>!e.includes(t)))).sort(()=>.5-e());var u,f;t.filter(t=>!t.set).forEach((t,e)=>t.set=n[e]);}function f(t,e,r=.5){n(t).forEach((n,o)=>{const c=t[o+1],u=n.set!==c.set,f=e()<=r;u&&f&&(function(t,e,r){t.forEach(t=>{t.set===e&&(t.set=r);});}(t,c.set,n.set),n.right=false,c.left=false);});}function i(t=8,r=t,i=true,s=1){const l=function(t){return function(){let e=t+=1831565813;return e=Math.imul(e^e>>>15,1|e),e^=e+Math.imul(e^e>>>7,61|e),((e^e>>>14)>>>0)/4294967296}}(s),a=[],p=o(t);for(let e=0;e<r;e+=1){const n=p.map(n=>({x:n,y:e,top:i||e>0,left:i||n>0,bottom:i||e<r-1,right:i||n<t-1}));a.push(n);}n(a).forEach((t,r)=>{u(t,l),f(t,l),function(t,r,n){const o=Object.values(function(t,r){let n=c(t.map(t=>t.set)).reduce((t,r)=>e(e({},t),{},{[r]:[]}),{});return t.forEach(t=>n[t.set].push(t)),n}(t)),{ceil:u}=Math;o.forEach(t=>{(function(t,e,r){e=null==e?1:e;const n=null==t?0:t.length;if(!n||e<1)return [];e=e>n?n:e;let o=-1;const c=n-1,u=[...t];for(;++o<e;){const t=o+Math.floor(r()*(c-o+1)),e=u[t];u[t]=u[o],u[o]=e;}return u.slice(0,e)})(t,u(n()*t.length),n).forEach(t=>{if(t){const e=r[t.x];t.bottom=false,e.top=false,e.set=t.set;}});});}(t,a[r+1],l);});const h=(b=a)[b.length-1];var b;return u(h,l),f(h,l,1),a}
-
   let config = {
       wallSize: 1,
       wallHeight: 3,
       walkSize: 2,
-      width: 15,
-      height: 15,
+      width: 20,
+      height: 20,
+      levels: 3,
       block: 'stone',
       includeSides: true
   };
@@ -29,8 +28,226 @@
       }
   });
 
-  const canvas = document.querySelector('canvas');
-  const context = canvas.getContext('2d');
+  // Multi-Level Maze Generator
+  class MultiLevelMaze {
+      constructor(width, height, levels) {
+          this.width = width;
+          this.height = height;
+          this.levels = levels;
+          this.currentLevel = 0;
+          this.mazes = [];
+          this.grid = [];
+          // Direction constants
+          this.NORTH = 1;
+          this.SOUTH = 2;
+          this.EAST = 4;
+          this.WEST = 8;
+          this.UP = 16;
+          this.DOWN = 32;
+          this.directions = [this.NORTH, this.SOUTH, this.EAST, this.WEST, this.UP, this.DOWN];
+          this.opposite = {
+              [this.NORTH]: this.SOUTH,
+              [this.SOUTH]: this.NORTH,
+              [this.EAST]: this.WEST,
+              [this.WEST]: this.EAST,
+              [this.UP]: this.DOWN,
+              [this.DOWN]: this.UP
+          };
+          this.dx = {
+              [this.NORTH]: 0,
+              [this.SOUTH]: 0,
+              [this.EAST]: 1,
+              [this.WEST]: -1,
+              [this.UP]: 0,
+              [this.DOWN]: 0
+          };
+          this.dy = {
+              [this.NORTH]: -1,
+              [this.SOUTH]: 1,
+              [this.EAST]: 0,
+              [this.WEST]: 0,
+              [this.UP]: 0,
+              [this.DOWN]: 0
+          };
+          this.dz = {
+              [this.NORTH]: 0,
+              [this.SOUTH]: 0,
+              [this.EAST]: 0,
+              [this.WEST]: 0,
+              [this.UP]: 1,
+              [this.DOWN]: -1
+          };
+      }
+      generate() {
+          // Initialize 3D grid
+          this.grid = [];
+          for (let z = 0; z < this.levels; z++) {
+              this.grid[z] = [];
+              for (let y = 0; y < this.height; y++) {
+                  this.grid[z][y] = [];
+                  for (let x = 0; x < this.width; x++) {
+                      this.grid[z][y][x] = 0;
+                  }
+              }
+          }
+          // Generate maze using depth-first search
+          this.generateMaze();
+          // Create individual maze objects for each level
+          this.createLevelMazes();
+      }
+      generateMaze() {
+          // Use Growing Tree algorithm with 50/50 split between random and newest
+          const cells = [];
+          const visited = new Set();
+          // Start from a random cell
+          const startX = Math.floor(Math.random() * this.width);
+          const startY = Math.floor(Math.random() * this.height);
+          const startZ = Math.floor(Math.random() * this.levels);
+          cells.push({ x: startX, y: startY, z: startZ });
+          visited.add(`${startX},${startY},${startZ}`);
+          while (cells.length > 0) {
+              // Choose cell selection method: 50% random, 50% newest
+              const useRandom = Math.random() < 0.5;
+              const index = useRandom ? Math.floor(Math.random() * cells.length) : cells.length - 1;
+              const current = cells[index];
+              const neighbors = this.getUnvisitedNeighbors(current.x, current.y, current.z, visited);
+              if (neighbors.length === 0) {
+                  // No unvisited neighbors, remove this cell
+                  cells.splice(index, 1);
+              }
+              else {
+                  // Choose a random unvisited neighbor
+                  const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+                  const direction = this.getDirection(current, next);
+                  // Carve passage
+                  this.grid[current.z][current.y][current.x] |= direction;
+                  this.grid[next.z][next.y][next.x] |= this.opposite[direction];
+                  visited.add(`${next.x},${next.y},${next.z}`);
+                  cells.push(next);
+              }
+          }
+          // Ensure entrance and exit
+          this.grid[0][0][0] |= this.WEST;
+          this.grid[this.levels - 1][this.height - 1][this.width - 1] |= this.EAST;
+      }
+      getUnvisitedNeighbors(x, y, z, visited) {
+          const neighbors = [];
+          for (const dir of this.directions) {
+              const nx = x + this.dx[dir];
+              const ny = y + this.dy[dir];
+              const nz = z + this.dz[dir];
+              if (this.isValidCell(nx, ny, nz) && !visited.has(`${nx},${ny},${nz}`)) {
+                  neighbors.push({ x: nx, y: ny, z: nz });
+              }
+          }
+          return neighbors;
+      }
+      getDirection(from, to) {
+          const dx = to.x - from.x;
+          const dy = to.y - from.y;
+          const dz = to.z - from.z;
+          if (dx === 1)
+              return this.EAST;
+          if (dx === -1)
+              return this.WEST;
+          if (dy === 1)
+              return this.SOUTH;
+          if (dy === -1)
+              return this.NORTH;
+          if (dz === 1)
+              return this.UP;
+          if (dz === -1)
+              return this.DOWN;
+          return 0;
+      }
+      isValidCell(x, y, z) {
+          return x >= 0 && x < this.width && y >= 0 && y < this.height && z >= 0 && z < this.levels;
+      }
+      createLevelMazes() {
+          this.mazes = [];
+          for (let z = 0; z < this.levels; z++) {
+              const levelMaze = {
+                  width: this.width,
+                  height: this.height,
+                  level: z,
+                  grid: []
+              };
+              for (let y = 0; y < this.height; y++) {
+                  levelMaze.grid[y] = [];
+                  for (let x = 0; x < this.width; x++) {
+                      levelMaze.grid[y][x] = {
+                          walls: this.grid[z][y][x],
+                          hasUp: (this.grid[z][y][x] & this.UP) !== 0,
+                          hasDown: (this.grid[z][y][x] & this.DOWN) !== 0
+                      };
+                  }
+              }
+              this.mazes.push(levelMaze);
+          }
+      }
+      renderLevel(levelIndex) {
+          const maze = this.mazes[levelIndex];
+          if (!maze)
+              return '';
+          let html = '<div class="maze-grid">';
+          // Top border row
+          html += '<div class="maze-row">';
+          for (let x = 0; x < maze.width * 2 + 1; x++) {
+              html += '<div class="maze-cell wall"></div>';
+          }
+          html += '</div>';
+          for (let y = 0; y < maze.height; y++) {
+              // Main row with cells
+              html += '<div class="maze-row">';
+              // Left border
+              const hasWest = (maze.grid[y][0].walls & this.WEST) !== 0;
+              html += `<div class="maze-cell ${hasWest ? 'path' : 'wall'}"></div>`;
+              // Cells with passages
+              for (let x = 0; x < maze.width; x++) {
+                  const cell = maze.grid[y][x];
+                  const hasEast = (cell.walls & this.EAST) !== 0;
+                  // Cell content with up/down indicators
+                  html += '<div class="maze-cell path">';
+                  html += `<div class="maze-indicator ${cell.hasUp ? 'up' : 'horizontal'}"></div>`;
+                  html += `<div class="maze-indicator ${cell.hasDown ? 'down' : 'horizontal'}"></div>`;
+                  html += '</div>';
+                  // Right wall of cell
+                  html += `<div class="maze-cell ${hasEast ? 'path' : 'wall'}"></div>`;
+              }
+              html += '</div>';
+              // Bottom row with south passages (except last row)
+              if (y < maze.height - 1) {
+                  html += '<div class="maze-row">';
+                  html += '<div class="maze-cell wall"></div>';
+                  for (let x = 0; x < maze.width; x++) {
+                      const cell = maze.grid[y][x];
+                      const hasSouth = (cell.walls & this.SOUTH) !== 0;
+                      html += `<div class="maze-cell ${hasSouth ? 'path' : 'wall'}"></div>`;
+                      html += '<div class="maze-cell wall"></div>';
+                  }
+                  html += '</div>';
+              }
+          }
+          // Bottom border row
+          html += '<div class="maze-row">';
+          for (let x = 0; x < maze.width * 2 + 1; x++) {
+              html += '<div class="maze-cell wall"></div>';
+          }
+          html += '</div>';
+          html += '</div>';
+          return html;
+      }
+      renderTreeView() {
+          let html = '';
+          for (let i = 0; i < this.levels; i++) {
+              const activeClass = i === this.currentLevel ? 'active' : '';
+              html += `<div class="tree-item ${activeClass}" onclick="selectLevel(${i})">Level ${i + 1}</div>`;
+          }
+          return html;
+      }
+  }
+  // Global variables
+  let mazeGenerator = null;
   function debounce(func, wait) {
       let timeout;
       const later = function () {
@@ -42,102 +259,9 @@
           timeout = setTimeout(later, wait);
       };
   }
-  function draw() {
-      let { width, height, wallSize, walkSize, includeSides } = config;
-      const cellSize = wallSize * 2 + walkSize;
-      const cellOffset = wallSize + walkSize;
-      const maze = i(width, height, includeSides);
-      canvas.width = (width * wallSize) + (width * walkSize) + wallSize;
-      canvas.height = (height * wallSize) + (height * walkSize) + wallSize;
-      document.querySelector('[data-show=dimensions]').innerHTML = `${canvas.width} &times; ${canvas.height}`;
-      context.fillStyle = 'white';
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      context.fillStyle = 'black';
-      maze.forEach(row => {
-          row.forEach(cell => {
-              // Top left
-              const x = cell.x * cellOffset;
-              const y = cell.y * cellOffset;
-              if (cell.top) {
-                  context.fillRect(x, y, cellSize, wallSize);
-              }
-              if (cell.left) {
-                  context.fillRect(x, y, wallSize, cellSize);
-              }
-              if (cell.right) {
-                  context.fillRect(x + wallSize + walkSize, y, wallSize, cellSize);
-              }
-              if (cell.bottom) {
-                  context.fillRect(x, y + wallSize + walkSize, cellSize, wallSize);
-              }
-          });
-      });
-  }
-  function generateCommand() {
-      if (canvas.width * canvas.height > 2 ** 16 && confirm('Maze is probably too large, this may crash your browser. Continue?')) {
-          return;
-      }
-      let { width, height, wallSize, wallHeight, walkSize, block } = config;
-      // MineCraft... 0 wallSize = 1 block
-      wallSize--;
-      walkSize--;
-      wallHeight--;
-      const commands = [
-          `# Clear maze blocks\n`
-      ];
-      const clearSize = Math.floor(Math.sqrt(32768 / (wallHeight + 1)));
-      for (let y = 0; y < canvas.height; y += clearSize) {
-          for (let x = 0; x < canvas.width; x += clearSize) {
-              const xMax = Math.min(x + clearSize, canvas.width);
-              const yMax = Math.min(y + clearSize, canvas.height);
-              commands.push(`fill ~${x} ~ ~${y} ~${xMax - 1} ~${wallHeight} ~${yMax - 1} air\n`);
-          }
-      }
-      commands.push(`# Fill maze blocks\n`);
-      for (let y = 0; y < canvas.height; y++) {
-          for (let x = 0; x < canvas.width; x++) {
-              const { data } = context.getImageData(x, y, 1, 1);
-              if (data[0])
-                  continue;
-              commands.push(`fill ~${x} ~ ~${y} ~${x} ~${wallHeight} ~${y} ${block}\n`);
-          }
-      }
-      // Generate filename based on selected naming option
-      let filename;
-      const namingOption = document.querySelector('input[name="naming"]:checked')?.value;
-      switch (namingOption) {
-          case 'simple':
-              filename = 'maze.mcfunction';
-              break;
-          case 'detailed':
-              // Format: <width>x<height>maze-<ww#><wh#><pw#><wb"word">.mcfunction
-              filename = `${width}x${height}maze-ww${wallSize + 1}wh${wallHeight + 1}pw${walkSize + 1}wb${block}.mcfunction`;
-              break;
-          case 'custom':
-              const customName = document.querySelector('[data-for="customName"]')?.value?.trim();
-              if (customName) {
-                  filename = customName.endsWith('.mcfunction') ? customName : `${customName}.mcfunction`;
-              }
-              else {
-                  // Fallback to simple if no custom name provided
-                  filename = 'maze.mcfunction';
-              }
-              break;
-          default:
-              filename = 'maze.mcfunction';
-      }
-      const element = document.body.appendChild(document.createElement('a'));
-      const commandData = new Blob(commands, { type: 'text/plain' });
-      element.href = URL.createObjectURL(commandData);
-      element.setAttribute('download', filename);
-      element.style.display = 'none';
-      element.click();
-      document.body.removeChild(element);
-  }
-  const drawDelay = debounce(draw, 500);
   function updateDetailedFilename() {
-      let { width, height, wallSize, wallHeight, walkSize, block } = config;
-      const filename = `${width}x${height}maze-ww${wallSize + 1}wh${wallHeight + 1}pw${walkSize + 1}wb${block}.mcfunction`;
+      let { width, height, wallSize, wallHeight, walkSize, block, levels } = config;
+      const filename = `${width}x${height}x${levels}maze-ww${wallSize + 1}wh${wallHeight + 1}pw${walkSize + 1}wb${block}.mcfunction`;
       const detailedNameElement = document.querySelector('[data-show="detailed-name"]');
       if (detailedNameElement) {
           detailedNameElement.textContent = filename;
@@ -161,6 +285,12 @@
           }
       }
   }
+  function updateDimensions() {
+      let { width, height, wallSize, walkSize } = config;
+      const totalWidth = (width * wallSize) + (width * walkSize) + wallSize;
+      const totalHeight = (height * wallSize) + (height * walkSize) + wallSize;
+      document.querySelector('[data-show=dimensions]').innerHTML = `${totalWidth} &times; ${totalHeight}`;
+  }
   function validate() {
       Array.from(document.querySelectorAll('input')).forEach(element => {
           if (element.type === 'number') {
@@ -174,8 +304,181 @@
       });
       updateDetailedFilename();
       updateCustomNamePreview();
+      updateDimensions();
       drawDelay();
   }
+  function updateDisplay() {
+      if (!mazeGenerator)
+          return;
+      // Update maze display
+      const mazeDisplay = document.getElementById('mazeDisplay');
+      if (mazeDisplay) {
+          mazeDisplay.innerHTML = mazeGenerator.renderLevel(mazeGenerator.currentLevel);
+          // Calculate optimal cell size based on available space to ensure perfect squares
+          const container = mazeDisplay.parentElement;
+          if (container) {
+              const containerWidth = container.clientWidth - 60; // Account for padding and borders
+              const containerHeight = container.clientHeight - 60; // Account for padding and borders
+              // Calculate how many cells we need to fit (including borders)
+              const totalCellsX = mazeGenerator.width + 2; // +2 for top/bottom borders
+              const totalCellsY = mazeGenerator.height + 2; // +2 for left/right borders
+              // Calculate maximum cell size that fits both dimensions
+              const maxCellWidth = Math.floor(containerWidth / totalCellsX);
+              const maxCellHeight = Math.floor(containerHeight / totalCellsY);
+              // Use the smaller of the two to ensure perfect squares
+              const optimalCellSize = Math.min(maxCellWidth, maxCellHeight, 40); // Max 40px, min 15px
+              const finalCellSize = Math.max(optimalCellSize, 15);
+              // Apply dynamic sizing to ensure perfect squares
+              const mazeGrid = mazeDisplay.querySelector('.maze-grid');
+              if (mazeGrid) {
+                  const cells = mazeGrid.querySelectorAll('.maze-cell');
+                  cells.forEach(cell => {
+                      cell.style.width = `${finalCellSize}px`;
+                      cell.style.height = `${finalCellSize}px`;
+                  });
+              }
+          }
+      }
+      // Update tree view
+      const treeView = document.getElementById('treeView');
+      if (treeView) {
+          treeView.innerHTML = mazeGenerator.renderTreeView();
+      }
+      // Update level controls
+      const currentLevel = document.getElementById('currentLevel');
+      const totalLevels = document.getElementById('totalLevels');
+      if (currentLevel)
+          currentLevel.textContent = (mazeGenerator.currentLevel + 1).toString();
+      if (totalLevels)
+          totalLevels.textContent = mazeGenerator.levels.toString();
+      // Update navigation buttons
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      if (prevBtn)
+          prevBtn.disabled = mazeGenerator.currentLevel === 0;
+      if (nextBtn)
+          nextBtn.disabled = mazeGenerator.currentLevel === mazeGenerator.levels - 1;
+  }
+  function draw() {
+      let { width, height, levels } = config;
+      mazeGenerator = new MultiLevelMaze(width, height, levels);
+      mazeGenerator.generate();
+      updateDisplay();
+  }
+  function generateCommand() {
+      if (!mazeGenerator)
+          return;
+      let { wallSize, wallHeight, walkSize, block, levels } = config;
+      // MineCraft... 0 wallSize = 1 block
+      wallSize--;
+      walkSize--;
+      wallHeight--;
+      const commands = [
+          `# Multi-Level Maze Generator\n`,
+          `# Levels: ${levels}\n`,
+          `# Dimensions: ${mazeGenerator.width}x${mazeGenerator.height}\n\n`
+      ];
+      // Generate commands for each level
+      for (let level = 0; level < levels; level++) {
+          commands.push(`# Level ${level + 1}\n`);
+          const maze = mazeGenerator.mazes[level];
+          if (!maze)
+              continue;
+          // Clear level
+          const clearSize = Math.floor(Math.sqrt(32768 / (wallHeight + 1)));
+          const levelY = level * (wallHeight + 1);
+          for (let y = 0; y < maze.height; y += clearSize) {
+              for (let x = 0; x < maze.width; x += clearSize) {
+                  const xMax = Math.min(x + clearSize, maze.width);
+                  const yMax = Math.min(y + clearSize, maze.height);
+                  commands.push(`fill ~${x} ~${levelY} ~${y} ~${xMax - 1} ~${levelY + wallHeight} ~${yMax - 1} air\n`);
+              }
+          }
+          // Fill maze blocks
+          for (let y = 0; y < maze.height; y++) {
+              for (let x = 0; x < maze.width; x++) {
+                  const cell = maze.grid[y][x];
+                  const hasNorth = (cell.walls & mazeGenerator.NORTH) !== 0;
+                  const hasSouth = (cell.walls & mazeGenerator.SOUTH) !== 0;
+                  const hasEast = (cell.walls & mazeGenerator.EAST) !== 0;
+                  const hasWest = (cell.walls & mazeGenerator.WEST) !== 0;
+                  // If it's a wall (no passages), fill it
+                  if (!hasNorth && !hasSouth && !hasEast && !hasWest) {
+                      commands.push(`fill ~${x} ~${levelY} ~${y} ~${x} ~${levelY + wallHeight} ~${y} ${block}\n`);
+                  }
+              }
+          }
+          // Add level transitions
+          for (let y = 0; y < maze.height; y++) {
+              for (let x = 0; x < maze.width; x++) {
+                  const cell = maze.grid[y][x];
+                  if (cell.hasUp && level < levels - 1) {
+                      commands.push(`# Up transition at ${x}, ${y} on level ${level + 1}\n`);
+                      // Add ladder or stairs up
+                      commands.push(`setblock ~${x} ~${levelY + wallHeight + 1} ~${y} ladder[facing=north]\n`);
+                  }
+                  if (cell.hasDown && level > 0) {
+                      commands.push(`# Down transition at ${x}, ${y} on level ${level + 1}\n`);
+                      // Add ladder or stairs down
+                      commands.push(`setblock ~${x} ~${levelY - 1} ~${y} ladder[facing=south]\n`);
+                  }
+              }
+          }
+          commands.push('\n');
+      }
+      // Generate filename based on selected naming option
+      let filename;
+      const namingOption = document.querySelector('input[name="naming"]:checked')?.value;
+      switch (namingOption) {
+          case 'simple':
+              filename = 'maze.mcfunction';
+              break;
+          case 'detailed':
+              // Format: <width>x<height>x<levels>maze-<ww#><wh#><pw#><wb"word">.mcfunction
+              filename = `${mazeGenerator.width}x${mazeGenerator.height}x${levels}maze-ww${wallSize + 1}wh${wallHeight + 1}pw${walkSize + 1}wb${block}.mcfunction`;
+              break;
+          case 'custom':
+              const customName = document.querySelector('[data-for="customName"]')?.value?.trim();
+              if (customName) {
+                  filename = customName.endsWith('.mcfunction') ? customName : `${customName}.mcfunction`;
+              }
+              else {
+                  // Fallback to simple if no custom name provided
+                  filename = 'maze.mcfunction';
+              }
+              break;
+          default:
+              filename = 'maze.mcfunction';
+      }
+      const element = document.body.appendChild(document.createElement('a'));
+      const commandData = new Blob(commands, { type: 'text/plain' });
+      element.href = URL.createObjectURL(commandData);
+      element.setAttribute('download', filename);
+      element.style.display = 'none';
+      element.click();
+      document.body.removeChild(element);
+  }
+  // Navigation functions
+  function nextLevel() {
+      if (mazeGenerator && mazeGenerator.currentLevel < mazeGenerator.levels - 1) {
+          mazeGenerator.currentLevel++;
+          updateDisplay();
+      }
+  }
+  function previousLevel() {
+      if (mazeGenerator && mazeGenerator.currentLevel > 0) {
+          mazeGenerator.currentLevel--;
+          updateDisplay();
+      }
+  }
+  function selectLevel(level) {
+      if (mazeGenerator && level >= 0 && level < mazeGenerator.levels) {
+          mazeGenerator.currentLevel = level;
+          updateDisplay();
+      }
+  }
+  const drawDelay = debounce(draw, 500);
+  // Event listeners
   document.addEventListener('change', validate);
   document.addEventListener('input', (event) => {
       const target = event.target;
@@ -184,8 +487,20 @@
       }
   });
   document.querySelector('button').addEventListener('click', generateCommand);
+  // Handle window resize for dynamic sizing
+  window.addEventListener('resize', () => {
+      if (mazeGenerator) {
+          updateDisplay();
+      }
+  });
+  // Initialize
   draw();
   updateDetailedFilename();
   updateCustomNamePreview();
+  updateDimensions();
+  // Make functions globally available
+  window.nextLevel = nextLevel;
+  window.previousLevel = previousLevel;
+  window.selectLevel = selectLevel;
 
 })();
