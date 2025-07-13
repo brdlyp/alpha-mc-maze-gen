@@ -569,7 +569,11 @@ document.addEventListener('input', (event) => {
   }
 });
 
-document.querySelector('button')!.addEventListener('click', generateCommand);
+// Add event listener to the download button
+const downloadButton = document.querySelector('button.button.is-primary');
+if (downloadButton) {
+  downloadButton.addEventListener('click', generateCommand);
+}
 
 // Handle window resize for dynamic sizing
 window.addEventListener('resize', () => {
