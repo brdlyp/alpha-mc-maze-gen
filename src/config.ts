@@ -10,7 +10,7 @@ let config = {
 
 config = new Proxy(config, {
   get: function (target, prop) {
-    const el = document.querySelector(`[data-for="${prop}"]`) as HTMLInputElement | undefined
+    const el = document.querySelector(`[data-for="${String(prop)}"]`) as HTMLInputElement | undefined
     const fallback = (target as any)[prop]
     if (!el) return fallback
 
