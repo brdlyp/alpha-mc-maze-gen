@@ -9,7 +9,8 @@
       height: 20,
       levels: 3,
       block: 'stone',
-      includeSides: true
+      includeSides: true,
+      addRoof: false
   };
   config = new Proxy(config, {
       get: function (target, prop) {
@@ -260,8 +261,11 @@
       };
   }
   function updateDetailedFilename() {
-      let { width, height, wallSize, wallHeight, walkSize, block, levels } = config;
-      const filename = `${width}x${height}x${levels}maze-ww${wallSize + 1}wh${wallHeight + 1}pw${walkSize + 1}wb${block}.mcfunction`;
+      let { width, height, wallSize, wallHeight, walkSize, block, levels, addRoof } = config;
+      let suffix = '';
+      if (addRoof)
+          suffix = '-wceiling';
+      const filename = `${width}x${height}x${levels}maze-ww${wallSize}wh${wallHeight}pw${walkSize}wb${block}${suffix}.mcfunction`;
       const detailedNameElement = document.querySelector('[data-show="detailed-name"]');
       if (detailedNameElement) {
           detailedNameElement.textContent = filename;
@@ -368,7 +372,7 @@
   function generateCommand() {
       if (!mazeGenerator)
           return;
-      let { wallSize, wallHeight, walkSize, block, levels } = config;
+      let { wallSize, wallHeight, walkSize, block, levels, addRoof } = config;
       // Use user values directly
       // Each level: floor (1), walls (wallHeight), so total per level = 1 + wallHeight
       const commands = [
@@ -378,6 +382,9 @@
       ];
       // Calculate maze dimensions in blocks
       // For a maze of N cells, there are N+1 walls in each direction
+      let lastWallTopY = 0;
+      let totalWidth = 0;
+      let totalHeight = 0;
       for (let level = 0; level < levels; level++) {
           commands.push(`# Level ${level + 1}\n`);
           const maze = mazeGenerator.mazes[level];
@@ -387,8 +394,8 @@
           const levelY = level * (1 + wallHeight); // floor + wallHeight, no air gap
           const mazeWidth = maze.width;
           const mazeHeight = maze.height;
-          const totalWidth = mazeWidth * walkSize + (mazeWidth + 1) * wallSize;
-          const totalHeight = mazeHeight * walkSize + (mazeHeight + 1) * wallSize;
+          totalWidth = mazeWidth * walkSize + (mazeWidth + 1) * wallSize;
+          totalHeight = mazeHeight * walkSize + (mazeHeight + 1) * wallSize;
           const floorY = levelY;
           const wallTopY = levelY + wallHeight; // wallHeight blocks above floor
           // 1. Clear the area for this level
@@ -499,6 +506,12 @@
               }
           }
           commands.push('\n');
+          lastWallTopY = wallTopY;
+      }
+      // Add ceiling/roof if enabled (after all levels)
+      if (addRoof) {
+          commands.push(`# Ceiling/Roof\n`);
+          commands.push(`fill ~0 ~${lastWallTopY + 1} ~0 ~${totalWidth - 1} ~${lastWallTopY + 1} ~${totalHeight - 1} ${block}\n`);
       }
       // Generate filename based on selected naming option
       let filename;
@@ -507,9 +520,14 @@
           case 'simple':
               filename = 'maze.mcfunction';
               break;
-          case 'detailed':
-              filename = `${mazeGenerator.width}x${mazeGenerator.height}x${levels}maze-ww${wallSize + 1}wh${wallHeight + 1}pw${walkSize + 1}wb${block}.mcfunction`;
+          case 'detailed': {
+              // Format: <width>x<height>x<levels>maze-<ww#><wh#><pw#><wb"word">[-wceiling].mcfunction
+              let suffix = '';
+              if (addRoof)
+                  suffix = '-wceiling';
+              filename = `${mazeGenerator.width}x${mazeGenerator.height}x${levels}maze-ww${wallSize}wh${wallHeight}pw${walkSize}wb${block}${suffix}.mcfunction`;
               break;
+          }
           case 'custom':
               const customName = document.querySelector('[data-for="customName"]')?.value?.trim();
               if (customName) {
@@ -558,6 +576,11 @@
           updateCustomNamePreview();
       }
   });
+  // Add event listener for addRoof checkbox to update the filename example
+  const addRoofCheckbox = document.querySelector('[data-for="addRoof"]');
+  if (addRoofCheckbox) {
+      addRoofCheckbox.addEventListener('change', updateDetailedFilename);
+  }
   // Add event listener to the download button
   const downloadButton = document.querySelector('button.button.is-primary');
   if (downloadButton) {

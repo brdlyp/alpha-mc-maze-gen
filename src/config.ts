@@ -6,7 +6,8 @@ let config = {
   height: 20,
   levels: 3,
   block: 'stone',
-  includeSides: true
+  includeSides: true,
+  addRoof: false
 }
 
 config = new Proxy(config, {
