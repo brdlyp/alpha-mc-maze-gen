@@ -1,6 +1,6 @@
 {
   "name": "MazeCommand",
-  "version": "2.0.0",
+  "version": "2.0.10",
   "description": "Generates a maze that can be imported into your Minecraft Java world",
   "main": "index.js",
   "type": "module",
@@ -16,6 +16,11 @@
     "typescript": "^5.4.5"
   },
   "scripts": {
-    "build": "rollup -c"
+    "build": "node scripts/version.js patch && rollup -c",
+    "build:minor": "node scripts/version.js minor && rollup -c",
+    "build:major": "node scripts/version.js major && rollup -c",
+    "version:patch": "node scripts/version.js patch",
+    "version:minor": "node scripts/version.js minor",
+    "version:major": "node scripts/version.js major"
   }
 }

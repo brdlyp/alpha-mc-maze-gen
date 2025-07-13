@@ -488,13 +488,13 @@ function generateCommand() {
         if (cell.hasUp && level < levels - 1) {
           commands.push(`# Up transition at ${x}, ${y} on level ${level + 1}\n`);
           // Add ladder or stairs up
-          commands.push(`setblock ~${x} ~${levelY + wallHeight + 1} ~${y} ladder[facing=north]\n`);
+          commands.push(`setblock ~${x} ~${levelY + wallHeight + 1} ~${y} ladder\n`);
         }
         
         if (cell.hasDown && level > 0) {
           commands.push(`# Down transition at ${x}, ${y} on level ${level + 1}\n`);
           // Add ladder or stairs down
-          commands.push(`setblock ~${x} ~${levelY - 1} ~${y} ladder[facing=south]\n`);
+          commands.push(`setblock ~${x} ~${levelY - 1} ~${y} ladder\n`);
         }
       }
     }

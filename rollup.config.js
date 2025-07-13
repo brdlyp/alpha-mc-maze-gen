@@ -20,6 +20,9 @@ function injectVersion() {
       // Replace the placeholder with the actual version
       html = html.replace('{{VERSION}}', version)
       
+      // Also replace any existing version numbers in the format "Version: X.X.X"
+      html = html.replace(/Version: \d+\.\d+\.\d+/g, `Version: ${version}`)
+      
       // Write the updated HTML file to the output location
       writeFileSync('index.html', html)
     }
