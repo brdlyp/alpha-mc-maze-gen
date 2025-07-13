@@ -10,7 +10,9 @@
       levels: 3,
       block: 'stone',
       includeSides: true,
-      addRoof: false
+      addRoof: false,
+      showBlockLegend: true,
+      showChunkBorders: false
   };
   config = new Proxy(config, {
       get: function (target, prop) {
@@ -190,48 +192,98 @@
           const maze = this.mazes[levelIndex];
           if (!maze)
               return '';
+          // Get current wall and path sizes from config
+          const { wallSize, walkSize } = config;
           let html = '<div class="maze-grid">';
-          // Top border row
+          // Calculate total grid dimensions based on wall and path sizes
+          const totalWidth = maze.width * walkSize + (maze.width + 1) * wallSize;
+          // Top border row (all walls)
           html += '<div class="maze-row">';
-          for (let x = 0; x < maze.width * 2 + 1; x++) {
+          for (let x = 0; x < totalWidth; x++) {
               html += '<div class="maze-cell wall"></div>';
           }
           html += '</div>';
           for (let y = 0; y < maze.height; y++) {
-              // Main row with cells
-              html += '<div class="maze-row">';
-              // Left border
-              const hasWest = (maze.grid[y][0].walls & this.WEST) !== 0;
-              html += `<div class="maze-cell ${hasWest ? 'path' : 'wall'}"></div>`;
-              // Cells with passages
-              for (let x = 0; x < maze.width; x++) {
-                  const cell = maze.grid[y][x];
-                  const hasEast = (cell.walls & this.EAST) !== 0;
-                  // Cell content with up/down indicators
-                  html += '<div class="maze-cell path">';
-                  html += `<div class="maze-indicator ${cell.hasUp ? 'up' : 'horizontal'}"></div>`;
-                  html += `<div class="maze-indicator ${cell.hasDown ? 'down' : 'horizontal'}"></div>`;
+              // For each maze row, we need walkSize + wallSize rows in the display
+              for (let displayRow = 0; displayRow < walkSize; displayRow++) {
+                  html += '<div class="maze-row">';
+                  // Left border wall
+                  const hasWest = (maze.grid[y][0].walls & this.WEST) !== 0;
+                  if (hasWest) {
+                      // Path opening
+                      for (let i = 0; i < walkSize; i++) {
+                          html += '<div class="maze-cell path"></div>';
+                      }
+                  }
+                  else {
+                      // Solid wall
+                      for (let i = 0; i < wallSize; i++) {
+                          html += '<div class="maze-cell wall"></div>';
+                      }
+                  }
+                  // Cells with passages
+                  for (let x = 0; x < maze.width; x++) {
+                      const cell = maze.grid[y][x];
+                      const hasEast = (cell.walls & this.EAST) !== 0;
+                      // Cell content (path area)
+                      for (let i = 0; i < walkSize; i++) {
+                          html += '<div class="maze-cell path">';
+                          // Add up/down indicators only in the center of the path
+                          if (displayRow === Math.floor(walkSize / 2)) {
+                              html += `<div class="maze-indicator ${cell.hasUp ? 'up' : 'horizontal'}"></div>`;
+                              html += `<div class="maze-indicator ${cell.hasDown ? 'down' : 'horizontal'}"></div>`;
+                          }
+                          html += '</div>';
+                      }
+                      // Right wall of cell
+                      if (hasEast) {
+                          // Path opening
+                          for (let i = 0; i < walkSize; i++) {
+                              html += '<div class="maze-cell path"></div>';
+                          }
+                      }
+                      else {
+                          // Solid wall
+                          for (let i = 0; i < wallSize; i++) {
+                              html += '<div class="maze-cell wall"></div>';
+                          }
+                      }
+                  }
                   html += '</div>';
-                  // Right wall of cell
-                  html += `<div class="maze-cell ${hasEast ? 'path' : 'wall'}"></div>`;
               }
-              html += '</div>';
-              // Bottom row with south passages (except last row)
+              // Bottom wall row (except last maze row)
               if (y < maze.height - 1) {
                   html += '<div class="maze-row">';
-                  html += '<div class="maze-cell wall"></div>';
+                  // Left border wall
+                  for (let i = 0; i < wallSize; i++) {
+                      html += '<div class="maze-cell wall"></div>';
+                  }
                   for (let x = 0; x < maze.width; x++) {
                       const cell = maze.grid[y][x];
                       const hasSouth = (cell.walls & this.SOUTH) !== 0;
-                      html += `<div class="maze-cell ${hasSouth ? 'path' : 'wall'}"></div>`;
-                      html += '<div class="maze-cell wall"></div>';
+                      if (hasSouth) {
+                          // Path opening
+                          for (let i = 0; i < walkSize; i++) {
+                              html += '<div class="maze-cell path"></div>';
+                          }
+                      }
+                      else {
+                          // Solid wall
+                          for (let i = 0; i < wallSize; i++) {
+                              html += '<div class="maze-cell wall"></div>';
+                          }
+                      }
+                      // Wall intersection
+                      for (let i = 0; i < wallSize; i++) {
+                          html += '<div class="maze-cell wall"></div>';
+                      }
                   }
                   html += '</div>';
               }
           }
-          // Bottom border row
+          // Bottom border row (all walls)
           html += '<div class="maze-row">';
-          for (let x = 0; x < maze.width * 2 + 1; x++) {
+          for (let x = 0; x < totalWidth; x++) {
               html += '<div class="maze-cell wall"></div>';
           }
           html += '</div>';
@@ -323,9 +375,11 @@
           if (container) {
               const containerWidth = container.clientWidth - 60; // Account for padding and borders
               const containerHeight = container.clientHeight - 60; // Account for padding and borders
-              // Calculate how many cells we need to fit (including borders)
-              const totalCellsX = mazeGenerator.width + 2; // +2 for top/bottom borders
-              const totalCellsY = mazeGenerator.height + 2; // +2 for left/right borders
+              // Get current wall and path sizes from config
+              const { wallSize, walkSize } = config;
+              // Calculate how many cells we need to fit based on dynamic grid structure
+              const totalCellsX = mazeGenerator.width * walkSize + (mazeGenerator.width + 1) * wallSize;
+              const totalCellsY = mazeGenerator.height * walkSize + (mazeGenerator.height + 1) * wallSize;
               // Calculate maximum cell size that fits both dimensions
               const maxCellWidth = Math.floor(containerWidth / totalCellsX);
               const maxCellHeight = Math.floor(containerHeight / totalCellsY);
@@ -340,6 +394,86 @@
                       cell.style.width = `${finalCellSize}px`;
                       cell.style.height = `${finalCellSize}px`;
                   });
+              }
+              // --- Block Legend ---
+              const blockLegend = document.getElementById('blockLegend');
+              if (blockLegend) {
+                  if (config.showBlockLegend) {
+                      // Render a row legend: [wall][wall]...[path][path]... with labels
+                      let legendHtml = '<div style="display: flex; align-items: center; justify-content: center; gap: 8px;">';
+                      legendHtml += '<span style="font-size: 0.9em; color: #555; margin-right: 6px;">Wall</span>';
+                      for (let i = 0; i < wallSize; i++) {
+                          legendHtml += `<div class="maze-cell wall" style="width: ${finalCellSize}px; height: ${finalCellSize}px;"></div>`;
+                      }
+                      legendHtml += '<span style="font-size: 0.9em; color: #555; margin: 0 6px;">Path</span>';
+                      for (let i = 0; i < walkSize; i++) {
+                          legendHtml += `<div class="maze-cell path" style="width: ${finalCellSize}px; height: ${finalCellSize}px;"></div>`;
+                      }
+                      legendHtml += '</div>';
+                      blockLegend.innerHTML = legendHtml;
+                  }
+                  else {
+                      blockLegend.innerHTML = '';
+                  }
+              }
+              // --- Chunk Borders ---
+              // Remove any previous chunk overlays
+              const oldChunkOverlay = document.getElementById('chunkOverlay');
+              if (oldChunkOverlay && oldChunkOverlay.parentElement) {
+                  oldChunkOverlay.parentElement.removeChild(oldChunkOverlay);
+              }
+              if (config.showChunkBorders && mazeGrid) {
+                  // Create overlay div
+                  const overlay = document.createElement('div');
+                  overlay.id = 'chunkOverlay';
+                  overlay.style.position = 'absolute';
+                  const gridRect = mazeGrid;
+                  overlay.style.left = gridRect.offsetLeft + 'px';
+                  overlay.style.top = gridRect.offsetTop + 'px';
+                  overlay.style.pointerEvents = 'none';
+                  overlay.style.width = gridRect.offsetWidth + 'px';
+                  overlay.style.height = gridRect.offsetHeight + 'px';
+                  overlay.style.zIndex = '10';
+                  overlay.style.display = 'block';
+                  // Draw chunk lines (every 16 blocks)
+                  const overlaySvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                  overlaySvg.setAttribute('width', overlay.style.width);
+                  overlaySvg.setAttribute('height', overlay.style.height);
+                  overlaySvg.style.position = 'absolute';
+                  overlaySvg.style.left = '0';
+                  overlaySvg.style.top = '0';
+                  overlaySvg.style.width = '100%';
+                  overlaySvg.style.height = '100%';
+                  // Vertical lines (every 16 blocks)
+                  for (let x = 16; x < totalCellsX; x += 16) {
+                      const pos = x * finalCellSize;
+                      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                      line.setAttribute('x1', pos.toString());
+                      line.setAttribute('y1', '0');
+                      line.setAttribute('x2', pos.toString());
+                      line.setAttribute('y2', (totalCellsY * finalCellSize).toString());
+                      line.setAttribute('stroke', '#ff0000');
+                      line.setAttribute('stroke-width', '3');
+                      line.setAttribute('stroke-dasharray', '8,8');
+                      line.setAttribute('opacity', '0.7');
+                      overlaySvg.appendChild(line);
+                  }
+                  // Horizontal lines (every 16 blocks)
+                  for (let y = 16; y < totalCellsY; y += 16) {
+                      const pos = y * finalCellSize;
+                      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                      line.setAttribute('x1', '0');
+                      line.setAttribute('y1', pos.toString());
+                      line.setAttribute('x2', (totalCellsX * finalCellSize).toString());
+                      line.setAttribute('y2', pos.toString());
+                      line.setAttribute('stroke', '#ff0000');
+                      line.setAttribute('stroke-width', '3');
+                      line.setAttribute('stroke-dasharray', '8,8');
+                      line.setAttribute('opacity', '0.7');
+                      overlaySvg.appendChild(line);
+                  }
+                  overlay.appendChild(overlaySvg);
+                  mazeDisplay.appendChild(overlay);
               }
           }
       }
@@ -590,6 +724,25 @@
   window.addEventListener('resize', () => {
       if (mazeGenerator) {
           updateDisplay();
+      }
+  });
+  // Add event listeners for visual aids toggles
+  window.addEventListener('DOMContentLoaded', () => {
+      const blockLegendToggle = document.querySelector('[data-for="showBlockLegend"]');
+      const chunkBordersToggle = document.querySelector('[data-for="showChunkBorders"]');
+      if (blockLegendToggle) {
+          blockLegendToggle.checked = config.showBlockLegend;
+          blockLegendToggle.addEventListener('change', () => {
+              config.showBlockLegend = blockLegendToggle.checked;
+              updateDisplay();
+          });
+      }
+      if (chunkBordersToggle) {
+          chunkBordersToggle.checked = config.showChunkBorders;
+          chunkBordersToggle.addEventListener('change', () => {
+              config.showChunkBorders = chunkBordersToggle.checked;
+              updateDisplay();
+          });
       }
   });
   // Initialize

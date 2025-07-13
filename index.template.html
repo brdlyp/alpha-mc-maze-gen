@@ -148,6 +148,15 @@
           </div>
         </div>
         <div class="box">
+          <h4 class="title is-6">Visual Aids</h4>
+          <label class="checkbox" style="display: block; margin-bottom: 8px;">
+            <input type="checkbox" data-for="showBlockLegend" checked> Show Block Legend
+          </label>
+          <label class="checkbox" style="display: block;">
+            <input type="checkbox" data-for="showChunkBorders"> Show Chunk Borders
+          </label>
+        </div>
+        <div class="box">
           <button class="button is-primary">Download function</button>
         </div>
         <div class="box">
@@ -175,13 +184,15 @@
           </div>
           
           <div class="maze-display" style="flex: 1; text-align: center;">
+            <!-- Block legend placeholder -->
+            <div id="blockLegend" style="margin-bottom: 10px;"></div>
             <div class="level-controls" style="margin-bottom: 15px;">
               <button class="button is-small" onclick="previousLevel()" id="prevBtn">← Previous</button>
               <span class="mx-3">Level <span id="currentLevel">1</span> of <span id="totalLevels">3</span></span>
               <button class="button is-small" onclick="nextLevel()" id="nextBtn">Next →</button>
             </div>
             
-            <div id="mazeDisplay" style="display: flex; align-items: center; justify-content: center; min-height: 400px; padding: 20px;"></div>
+            <div id="mazeDisplay" style="display: flex; align-items: center; justify-content: center; min-height: 400px; padding: 20px; position: relative;"></div>
             
             <div class="legend" style="margin-top: 20px; display: flex; justify-content: center; gap: 20px;">
               <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">

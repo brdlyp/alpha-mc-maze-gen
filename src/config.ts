@@ -7,7 +7,9 @@ let config = {
   levels: 3,
   block: 'stone',
   includeSides: true,
-  addRoof: false
+  addRoof: false,
+  showBlockLegend: true,
+  showChunkBorders: false
 }
 
 config = new Proxy(config, {
