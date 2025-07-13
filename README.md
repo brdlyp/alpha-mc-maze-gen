@@ -1,1 +1,0 @@
-# brdlyp.github.io
