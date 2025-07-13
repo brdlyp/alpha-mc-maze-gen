@@ -102,9 +102,30 @@
               commands.push(`fill ~${x} ~ ~${y} ~${x} ~${wallHeight} ~${y} ${block}\n`);
           }
       }
-      // Generate filename with the specified format
-      // Format: <width>x<height>maze-<ww#><wh#><pw#><wb"word">.mcfunction
-      const filename = `${width}x${height}maze-ww${wallSize + 1}wh${wallHeight + 1}pw${walkSize + 1}wb${block}.mcfunction`;
+      // Generate filename based on selected naming option
+      let filename;
+      const namingOption = document.querySelector('input[name="naming"]:checked')?.value;
+      switch (namingOption) {
+          case 'simple':
+              filename = 'maze.mcfunction';
+              break;
+          case 'detailed':
+              // Format: <width>x<height>maze-<ww#><wh#><pw#><wb"word">.mcfunction
+              filename = `${width}x${height}maze-ww${wallSize + 1}wh${wallHeight + 1}pw${walkSize + 1}wb${block}.mcfunction`;
+              break;
+          case 'custom':
+              const customName = document.querySelector('[data-for="customName"]')?.value?.trim();
+              if (customName) {
+                  filename = customName.endsWith('.mcfunction') ? customName : `${customName}.mcfunction`;
+              }
+              else {
+                  // Fallback to simple if no custom name provided
+                  filename = 'maze.mcfunction';
+              }
+              break;
+          default:
+              filename = 'maze.mcfunction';
+      }
       const element = document.body.appendChild(document.createElement('a'));
       const commandData = new Blob(commands, { type: 'text/plain' });
       element.href = URL.createObjectURL(commandData);
@@ -114,6 +135,32 @@
       document.body.removeChild(element);
   }
   const drawDelay = debounce(draw, 500);
+  function updateDetailedFilename() {
+      let { width, height, wallSize, wallHeight, walkSize, block } = config;
+      const filename = `${width}x${height}maze-ww${wallSize + 1}wh${wallHeight + 1}pw${walkSize + 1}wb${block}.mcfunction`;
+      const detailedNameElement = document.querySelector('[data-show="detailed-name"]');
+      if (detailedNameElement) {
+          detailedNameElement.textContent = filename;
+      }
+  }
+  function updateCustomNamePreview() {
+      const customNameInput = document.querySelector('[data-for="customName"]');
+      const customNamePreview = document.getElementById('customNamePreview');
+      const customNameText = document.getElementById('customNameText');
+      const customRadio = document.querySelector('input[name="naming"][value="custom"]');
+      if (customNameInput && customNamePreview && customNameText) {
+          const customName = customNameInput.value.trim();
+          if (customRadio.checked && customName) {
+              // Remove .mcfunction if user typed it, then show preview
+              const cleanName = customName.replace(/\.mcfunction$/i, '');
+              customNameText.textContent = cleanName;
+              customNamePreview.style.display = 'block';
+          }
+          else {
+              customNamePreview.style.display = 'none';
+          }
+      }
+  }
   function validate() {
       Array.from(document.querySelectorAll('input')).forEach(element => {
           if (element.type === 'number') {
@@ -125,10 +172,20 @@
               }
           }
       });
+      updateDetailedFilename();
+      updateCustomNamePreview();
       drawDelay();
   }
   document.addEventListener('change', validate);
+  document.addEventListener('input', (event) => {
+      const target = event.target;
+      if (target.getAttribute('data-for') === 'customName') {
+          updateCustomNamePreview();
+      }
+  });
   document.querySelector('button').addEventListener('click', generateCommand);
   draw();
+  updateDetailedFilename();
+  updateCustomNamePreview();
 
 })();
