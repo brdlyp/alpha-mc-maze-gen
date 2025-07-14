@@ -1118,7 +1118,6 @@ function generateCommand() {
       
       const levelY = level * (1 + wallHeight);
       const floorY = levelY;
-      const wallTopY = levelY + wallHeight;
       
       const holeCells = mazeGenerator.getHoleCells(level, generateHoles, holesPerLevel);
       // Determine entrance/exit cell coordinates for this level
@@ -1149,29 +1148,41 @@ function generateCommand() {
           commands.push(`# Up ladder at level ${level + 1}, cell (${x}, ${y})\n`);
           // Try each wall in order: N, S, W, E
           const wallOptions = [
-            { dx: 0, dz: -1, dir: mazeGenerator.NORTH, facing: 2 }, // North wall, faces south
-            { dx: 0, dz: 1, dir: mazeGenerator.SOUTH, facing: 3 },  // South wall, faces north
-            { dx: -1, dz: 0, dir: mazeGenerator.WEST, facing: 4 },  // West wall, faces east
-            { dx: 1, dz: 0, dir: mazeGenerator.EAST, facing: 5 }    // East wall, faces west
+            { dx: 0, dz: -1, dir: mazeGenerator.NORTH, facing: 3 }, // North wall, faces south (ladder at z-1)
+            { dx: 0, dz: 1, dir: mazeGenerator.SOUTH, facing: 2 },  // South wall, faces north (ladder at z+1)
+            { dx: -1, dz: 0, dir: mazeGenerator.WEST, facing: 5 },  // West wall, faces east (ladder at x-1)
+            { dx: 1, dz: 0, dir: mazeGenerator.EAST, facing: 4 }    // East wall, faces west (ladder at x+1)
           ];
           let ladderPlaced = false;
           for (const wall of wallOptions) {
             // Only place ladders on internal walls (not boundary walls)
-            if ((maze.grid[y][x].walls & wall.dir) === 0 && !isBoundaryWall(x, y, wall.dir, maze.width, maze.height, mazeGenerator.NORTH, mazeGenerator.SOUTH, mazeGenerator.WEST, mazeGenerator.EAST)) {
-              const baseX = x * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
-              const baseZ = y * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
-              let wx = baseX;
-              let wz = baseZ;
-              if (wall.dx !== 0) wx += wall.dx * Math.ceil((walkSize + wallSize) / 2);
-              if (wall.dz !== 0) wz += wall.dz * Math.ceil((walkSize + wallSize) / 2);
+            if ((maze.grid[y][x].walls & wall.dir) !== 0 && !isBoundaryWall(x, y, wall.dir, maze.width, maze.height, mazeGenerator.NORTH, mazeGenerator.SOUTH, mazeGenerator.WEST, mazeGenerator.EAST)) {
+              // Calculate the solid block position (the wall)
+              const wallX = x * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
+              const wallZ = y * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
+              
+              // Calculate ladder position (adjacent to the wall)
+              let ladderX = wallX;
+              let ladderZ = wallZ;
+              if (wall.dx !== 0) ladderX += wall.dx; // Place ladder adjacent to wall
+              if (wall.dz !== 0) ladderZ += wall.dz; // Place ladder adjacent to wall
+              
+              // Ensure ladder is within bounds
               const maxX = maze.width * (walkSize + wallSize) + wallSize - 1;
               const maxZ = maze.height * (walkSize + wallSize) + wallSize - 1;
-              wx = Math.max(0, Math.min(wx, maxX));
-              wz = Math.max(0, Math.min(wz, maxZ));
-              for (let ladderY = floorY + 1; ladderY <= wallTopY + 2; ladderY++) {
-                commands.push(`setblock ~${wx} ~${ladderY} ~${wz} ladder ${wall.facing}\n`);
+              ladderX = Math.max(0, Math.min(ladderX, maxX));
+              ladderZ = Math.max(0, Math.min(ladderZ, maxZ));
+              
+              // Ladder Count Formula: wallHeight + 2
+              // This ensures: wallHeight ladders up from floor + 1 for floor hole + 1 for next level clearance
+              const ladderCount = wallHeight + 2;
+              const ladderStartY = floorY + 1;
+              const ladderEndY = ladderStartY + ladderCount - 1;
+              
+              for (let ladderY = ladderStartY; ladderY <= ladderEndY; ladderY++) {
+                commands.push(`setblock ~${ladderX} ~${ladderY} ~${ladderZ} ladder ${wall.facing}\n`);
               }
-              commands.push(`# Ladder placed on ${wall.dx !== 0 ? 'East/West' : 'North/South'} wall at coordinates (~${wx}, ~${floorY + 1}-${wallTopY + 2}, ~${wz}), facing ${wall.facing}\n`);
+              commands.push(`# Ladder placed adjacent to ${wall.dx !== 0 ? 'East/West' : 'North/South'} wall at coordinates (~${ladderX}, ~${ladderStartY}-${ladderEndY}, ~${ladderZ}), facing ${wall.facing} (${ladderCount} ladders total)\n`);
               ladderPlaced = true;
               break;
             }
@@ -1185,28 +1196,40 @@ function generateCommand() {
         if (holeCell.hasDown) {
           commands.push(`# Down ladder at level ${level + 1}, cell (${x}, ${y})\n`);
           const wallOptions = [
-            { dx: 0, dz: -1, dir: mazeGenerator.NORTH, facing: 2 },
-            { dx: 0, dz: 1, dir: mazeGenerator.SOUTH, facing: 3 },
-            { dx: -1, dz: 0, dir: mazeGenerator.WEST, facing: 4 },
-            { dx: 1, dz: 0, dir: mazeGenerator.EAST, facing: 5 }
+            { dx: 0, dz: -1, dir: mazeGenerator.NORTH, facing: 3 }, // North wall, faces south (ladder at z-1)
+            { dx: 0, dz: 1, dir: mazeGenerator.SOUTH, facing: 2 },  // South wall, faces north (ladder at z+1)
+            { dx: -1, dz: 0, dir: mazeGenerator.WEST, facing: 5 },  // West wall, faces east (ladder at x-1)
+            { dx: 1, dz: 0, dir: mazeGenerator.EAST, facing: 4 }    // East wall, faces west (ladder at x+1)
           ];
           let ladderPlaced = false;
           for (const wall of wallOptions) {
-            if ((maze.grid[y][x].walls & wall.dir) === 0 && !isBoundaryWall(x, y, wall.dir, maze.width, maze.height, mazeGenerator.NORTH, mazeGenerator.SOUTH, mazeGenerator.WEST, mazeGenerator.EAST)) {
-              const baseX = x * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
-              const baseZ = y * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
-              let wx = baseX;
-              let wz = baseZ;
-              if (wall.dx !== 0) wx += wall.dx * Math.ceil((walkSize + wallSize) / 2);
-              if (wall.dz !== 0) wz += wall.dz * Math.ceil((walkSize + wallSize) / 2);
+            if ((maze.grid[y][x].walls & wall.dir) !== 0 && !isBoundaryWall(x, y, wall.dir, maze.width, maze.height, mazeGenerator.NORTH, mazeGenerator.SOUTH, mazeGenerator.WEST, mazeGenerator.EAST)) {
+              // Calculate the solid block position (the wall)
+              const wallX = x * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
+              const wallZ = y * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
+              
+              // Calculate ladder position (adjacent to the wall)
+              let ladderX = wallX;
+              let ladderZ = wallZ;
+              if (wall.dx !== 0) ladderX += wall.dx; // Place ladder adjacent to wall
+              if (wall.dz !== 0) ladderZ += wall.dz; // Place ladder adjacent to wall
+              
+              // Ensure ladder is within bounds
               const maxX = maze.width * (walkSize + wallSize) + wallSize - 1;
               const maxZ = maze.height * (walkSize + wallSize) + wallSize - 1;
-              wx = Math.max(0, Math.min(wx, maxX));
-              wz = Math.max(0, Math.min(wz, maxZ));
-              for (let ladderY = floorY + 1; ladderY <= wallTopY + 2; ladderY++) {
-                commands.push(`setblock ~${wx} ~${ladderY} ~${wz} ladder ${wall.facing}\n`);
+              ladderX = Math.max(0, Math.min(ladderX, maxX));
+              ladderZ = Math.max(0, Math.min(ladderZ, maxZ));
+              
+              // Ladder Count Formula: wallHeight + 2
+              // This ensures: wallHeight ladders up from floor + 1 for floor hole + 1 for next level clearance
+              const ladderCount = wallHeight + 2;
+              const ladderStartY = floorY + 1;
+              const ladderEndY = ladderStartY + ladderCount - 1;
+              
+              for (let ladderY = ladderStartY; ladderY <= ladderEndY; ladderY++) {
+                commands.push(`setblock ~${ladderX} ~${ladderY} ~${ladderZ} ladder ${wall.facing}\n`);
               }
-              commands.push(`# Ladder placed on ${wall.dx !== 0 ? 'East/West' : 'North/South'} wall at coordinates (~${wx}, ~${floorY + 1}-${wallTopY + 2}, ~${wz}), facing ${wall.facing}\n`);
+              commands.push(`# Ladder placed adjacent to ${wall.dx !== 0 ? 'East/West' : 'North/South'} wall at coordinates (~${ladderX}, ~${ladderStartY}-${ladderEndY}, ~${ladderZ}), facing ${wall.facing} (${ladderCount} ladders total)\n`);
               ladderPlaced = true;
               break;
             }
