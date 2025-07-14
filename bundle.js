@@ -645,58 +645,81 @@
               if (oldChunkOverlay && oldChunkOverlay.parentElement) {
                   oldChunkOverlay.parentElement.removeChild(oldChunkOverlay);
               }
-              if (config.showChunkBorders && mazeGrid) {
-                  // Create overlay div
-                  const overlay = document.createElement('div');
-                  overlay.id = 'chunkOverlay';
-                  overlay.style.position = 'absolute';
-                  const gridRect = mazeGrid;
-                  overlay.style.left = gridRect.offsetLeft + 'px';
-                  overlay.style.top = gridRect.offsetTop + 'px';
-                  overlay.style.pointerEvents = 'none';
-                  overlay.style.width = gridRect.offsetWidth + 'px';
-                  overlay.style.height = gridRect.offsetHeight + 'px';
-                  overlay.style.zIndex = '10';
-                  overlay.style.display = 'block';
-                  // Draw chunk lines (every 16 blocks)
-                  const overlaySvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                  overlaySvg.setAttribute('width', overlay.style.width);
-                  overlaySvg.setAttribute('height', overlay.style.height);
-                  overlaySvg.style.position = 'absolute';
-                  overlaySvg.style.left = '0';
-                  overlaySvg.style.top = '0';
-                  overlaySvg.style.width = '100%';
-                  overlaySvg.style.height = '100%';
-                  // Vertical lines (every 16 blocks)
-                  for (let x = 16; x < totalCellsX; x += 16) {
-                      const pos = x * finalCellSize;
-                      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                      line.setAttribute('x1', pos.toString());
-                      line.setAttribute('y1', '0');
-                      line.setAttribute('x2', pos.toString());
-                      line.setAttribute('y2', (totalCellsY * finalCellSize).toString());
-                      line.setAttribute('stroke', '#ff0000');
-                      line.setAttribute('stroke-width', '3');
-                      line.setAttribute('stroke-dasharray', '8,8');
-                      line.setAttribute('opacity', '0.7');
-                      overlaySvg.appendChild(line);
+              if (config.showChunkBorders) {
+                  // Determine which grid to use based on display mode
+                  const targetGrid = currentDisplayMode === 'exact' ? exactMazeGrid : mazeGrid;
+                  if (targetGrid) {
+                      // Create overlay div
+                      const overlay = document.createElement('div');
+                      overlay.id = 'chunkOverlay';
+                      overlay.style.position = 'absolute';
+                      const gridRect = targetGrid;
+                      overlay.style.left = gridRect.offsetLeft + 'px';
+                      overlay.style.top = gridRect.offsetTop + 'px';
+                      overlay.style.pointerEvents = 'none';
+                      overlay.style.width = gridRect.offsetWidth + 'px';
+                      overlay.style.height = gridRect.offsetHeight + 'px';
+                      overlay.style.zIndex = '10';
+                      overlay.style.display = 'block';
+                      // Draw chunk lines (every 16 blocks)
+                      const overlaySvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                      overlaySvg.setAttribute('width', overlay.style.width);
+                      overlaySvg.setAttribute('height', overlay.style.height);
+                      overlaySvg.style.position = 'absolute';
+                      overlaySvg.style.left = '0';
+                      overlaySvg.style.top = '0';
+                      overlaySvg.style.width = '100%';
+                      overlaySvg.style.height = '100%';
+                      // Calculate dimensions based on display mode
+                      let totalBlocksX, totalBlocksY;
+                      if (currentDisplayMode === 'exact') {
+                          // For exact mode, use the actual block dimensions
+                          const maze = mazeGenerator.mazes[mazeGenerator.currentLevel];
+                          if (maze) {
+                              totalBlocksX = maze.width * config.walkSize + (maze.width + 1) * config.wallSize;
+                              totalBlocksY = maze.height * config.walkSize + (maze.height + 1) * config.wallSize;
+                          }
+                          else {
+                              totalBlocksX = totalCellsX;
+                              totalBlocksY = totalCellsY;
+                          }
+                      }
+                      else {
+                          // For schematic mode, use the calculated cell dimensions
+                          totalBlocksX = totalCellsX;
+                          totalBlocksY = totalCellsY;
+                      }
+                      // Vertical lines (every 16 blocks)
+                      for (let x = 16; x < totalBlocksX; x += 16) {
+                          const pos = x * finalCellSize;
+                          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                          line.setAttribute('x1', pos.toString());
+                          line.setAttribute('y1', '0');
+                          line.setAttribute('x2', pos.toString());
+                          line.setAttribute('y2', (totalBlocksY * finalCellSize).toString());
+                          line.setAttribute('stroke', '#ff0000');
+                          line.setAttribute('stroke-width', '3');
+                          line.setAttribute('stroke-dasharray', '8,8');
+                          line.setAttribute('opacity', '0.7');
+                          overlaySvg.appendChild(line);
+                      }
+                      // Horizontal lines (every 16 blocks)
+                      for (let y = 16; y < totalBlocksY; y += 16) {
+                          const pos = y * finalCellSize;
+                          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                          line.setAttribute('x1', '0');
+                          line.setAttribute('y1', pos.toString());
+                          line.setAttribute('x2', (totalBlocksX * finalCellSize).toString());
+                          line.setAttribute('y2', pos.toString());
+                          line.setAttribute('stroke', '#ff0000');
+                          line.setAttribute('stroke-width', '3');
+                          line.setAttribute('stroke-dasharray', '8,8');
+                          line.setAttribute('opacity', '0.7');
+                          overlaySvg.appendChild(line);
+                      }
+                      overlay.appendChild(overlaySvg);
+                      mazeDisplay.appendChild(overlay);
                   }
-                  // Horizontal lines (every 16 blocks)
-                  for (let y = 16; y < totalCellsY; y += 16) {
-                      const pos = y * finalCellSize;
-                      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                      line.setAttribute('x1', '0');
-                      line.setAttribute('y1', pos.toString());
-                      line.setAttribute('x2', (totalCellsX * finalCellSize).toString());
-                      line.setAttribute('y2', pos.toString());
-                      line.setAttribute('stroke', '#ff0000');
-                      line.setAttribute('stroke-width', '3');
-                      line.setAttribute('stroke-dasharray', '8,8');
-                      line.setAttribute('opacity', '0.7');
-                      overlaySvg.appendChild(line);
-                  }
-                  overlay.appendChild(overlaySvg);
-                  mazeDisplay.appendChild(overlay);
               }
           }
       }
