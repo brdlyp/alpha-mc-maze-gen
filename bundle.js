@@ -105,10 +105,12 @@
           // Use Growing Tree algorithm with 50/50 split between random and newest
           const cells = [];
           const visited = new Set();
-          // Start from a random cell
-          const startX = Math.floor(Math.random() * this.width);
-          const startY = Math.floor(Math.random() * this.height);
-          const startZ = Math.floor(Math.random() * this.levels);
+          // Start from a consistent cell to ensure connectivity
+          // For single level mazes, start from the entrance cell (top-left)
+          // For multi-level mazes, start from the entrance cell (top-left of first level)
+          const startX = 0;
+          const startY = 0;
+          const startZ = 0;
           cells.push({ x: startX, y: startY, z: startZ });
           visited.add(`${startX},${startY},${startZ}`);
           while (cells.length > 0) {
@@ -132,9 +134,30 @@
                   cells.push(next);
               }
           }
-          // Ensure entrance and exit
-          this.grid[0][0][0] |= this.WEST;
-          this.grid[this.levels - 1][this.height - 1][this.width - 1] |= this.EAST;
+          // Ensure entrance and exit - force passages to guarantee connectivity
+          // For single level mazes: entrance on west wall, exit on east wall
+          // For multi-level mazes: entrance on north wall of first level, exit on south wall of last level
+          if (this.levels === 1) {
+              // Single level: force west passage for entrance (top-left cell), east passage for exit (bottom-right cell)
+              this.grid[0][0][0] |= this.WEST; // Entrance: west wall of top-left cell
+              this.grid[0][this.height - 1][this.width - 1] |= this.EAST; // Exit: east wall of bottom-right cell
+              // Ensure the exit cell is connected to the maze by forcing a path from a neighboring cell
+              // Connect the bottom-right cell to its west neighbor if possible
+              if (this.width > 1) {
+                  this.grid[0][this.height - 1][this.width - 2] |= this.EAST; // West neighbor gets east passage
+                  this.grid[0][this.height - 1][this.width - 1] |= this.WEST; // Exit cell gets west passage
+              }
+              // Also connect to north neighbor if possible
+              if (this.height > 1) {
+                  this.grid[0][this.height - 2][this.width - 1] |= this.SOUTH; // North neighbor gets south passage
+                  this.grid[0][this.height - 1][this.width - 1] |= this.NORTH; // Exit cell gets north passage
+              }
+          }
+          else {
+              // Multi-level: force north passage for entrance on first level, south passage for exit on last level
+              this.grid[0][0][0] |= this.NORTH; // Entrance: north wall of top-left cell on first level
+              this.grid[this.levels - 1][this.height - 1][this.width - 1] |= this.SOUTH; // Exit: south wall of bottom-right cell on last level
+          }
       }
       getUnvisitedNeighbors(x, y, z, visited) {
           const neighbors = [];
@@ -203,7 +226,13 @@
           // Top border row (all walls)
           html += '<div class="maze-row">';
           for (let x = 0; x < totalWidth; x++) {
-              html += '<div class="maze-cell wall"></div>';
+              // Check for entrance hole on north wall for multi-level mazes
+              if (this.levels > 1 && levelIndex === 0 && x === wallSize + Math.floor(walkSize / 2)) {
+                  html += '<div class="maze-cell path"></div>';
+              }
+              else {
+                  html += '<div class="maze-cell wall"></div>';
+              }
           }
           html += '</div>';
           for (let y = 0; y < maze.height; y++) {
@@ -211,8 +240,8 @@
               for (let displayRow = 0; displayRow < walkSize; displayRow++) {
                   html += '<div class="maze-row">';
                   // Left border wall
-                  if (levelIndex === 0 && y === 0) {
-                      // Entrance hole for first cell of first level
+                  if (this.levels === 1 && levelIndex === 0 && y === 0) {
+                      // Single level maze: entrance hole on west wall for first cell
                       for (let i = 0; i < walkSize; i++) {
                           html += '<div class="maze-cell path"></div>';
                       }
@@ -267,8 +296,8 @@
                           html += '</div>';
                       }
                       // Right wall of cell
-                      if (hasEast || (levelIndex === this.levels - 1 && y === maze.height - 1 && x === maze.width - 1)) {
-                          // Path opening - either east passage or exit hole for last cell of last level
+                      if (hasEast || (this.levels === 1 && levelIndex === this.levels - 1 && y === maze.height - 1 && x === maze.width - 1)) {
+                          // Path opening - either east passage or exit hole for single level maze
                           for (let i = 0; i < walkSize; i++) {
                               html += '<div class="maze-cell path"></div>';
                           }
@@ -315,7 +344,13 @@
           // Bottom border row (all walls)
           html += '<div class="maze-row">';
           for (let x = 0; x < totalWidth; x++) {
-              html += '<div class="maze-cell wall"></div>';
+              // Check for exit hole on south wall for multi-level mazes
+              if (this.levels > 1 && levelIndex === this.levels - 1 && x === wallSize + (maze.width - 1) * (walkSize + wallSize) + Math.floor(walkSize / 2)) {
+                  html += '<div class="maze-cell path"></div>';
+              }
+              else {
+                  html += '<div class="maze-cell wall"></div>';
+              }
           }
           html += '</div>';
           html += '</div>';
@@ -359,13 +394,26 @@
           // Check if this is a border block
           if (x === 0 || x === maze.width * walkSize + (maze.width + 1) * wallSize - 1 ||
               z === 0 || z === maze.height * walkSize + (maze.height + 1) * wallSize - 1) {
-              // Check for entrance/exit openings
-              if (levelIndex === 0 && x === 0 && z === wallSize + Math.floor(walkSize / 2)) {
-                  return 'entrance';
+              // Check for entrance/exit openings based on maze type
+              if (this.levels === 1) {
+                  // Single level maze: entrance on west wall, exit on east wall
+                  if (levelIndex === 0 && x === 0 && z === wallSize + Math.floor(walkSize / 2)) {
+                      return 'entrance';
+                  }
+                  if (levelIndex === this.levels - 1 && x === maze.width * walkSize + (maze.width + 1) * wallSize - 1 &&
+                      z === wallSize + (maze.height - 1) * (walkSize + wallSize) + Math.floor(walkSize / 2)) {
+                      return 'exit';
+                  }
               }
-              if (levelIndex === this.levels - 1 && x === maze.width * walkSize + (maze.width + 1) * wallSize - 1 &&
-                  z === wallSize + (maze.height - 1) * (walkSize + wallSize) + Math.floor(walkSize / 2)) {
-                  return 'exit';
+              else {
+                  // Multi-level maze: entrance on north wall of first level, exit on south wall of last level
+                  if (levelIndex === 0 && z === 0 && x === wallSize + Math.floor(walkSize / 2)) {
+                      return 'entrance';
+                  }
+                  if (levelIndex === this.levels - 1 && z === maze.height * walkSize + (maze.height + 1) * wallSize - 1 &&
+                      x === wallSize + (maze.width - 1) * (walkSize + wallSize) + Math.floor(walkSize / 2)) {
+                      return 'exit';
+                  }
               }
               return 'border-wall';
           }
@@ -377,13 +425,15 @@
           }
           // Check if this is a vertical wall
           if (isWallX && !isWallZ) {
-              const cell = maze.grid[cellY][cellX];
+              // For vertical walls, check the cell to the left (same logic as command generation)
+              const cell = cellX > 0 ? maze.grid[cellY][cellX - 1] : null;
               const hasEast = (cell && (cell.walls & this.EAST) !== 0);
               return hasEast ? 'path' : 'vertical-wall';
           }
           // Check if this is a horizontal wall
           if (!isWallX && isWallZ) {
-              const cell = maze.grid[cellY][cellX];
+              // For horizontal walls, check the cell above (same logic as command generation)
+              const cell = cellY > 0 ? maze.grid[cellY - 1][cellX] : null;
               const hasSouth = (cell && (cell.walls & this.SOUTH) !== 0);
               return hasSouth ? 'path' : 'horizontal-wall';
           }
@@ -480,6 +530,36 @@
                   break;
           }
           return holeCells;
+      }
+      // Debug function to help understand the maze structure
+      debugMazeStructure(levelIndex) {
+          const maze = this.mazes[levelIndex];
+          if (!maze)
+              return 'No maze data';
+          let debug = `Maze Level ${levelIndex + 1} Structure:\n`;
+          debug += `Dimensions: ${maze.width}x${maze.height}\n\n`;
+          for (let y = 0; y < maze.height; y++) {
+              for (let x = 0; x < maze.width; x++) {
+                  const cell = maze.grid[y][x];
+                  const walls = cell.walls;
+                  const hasNorth = (walls & this.NORTH) !== 0;
+                  const hasSouth = (walls & this.SOUTH) !== 0;
+                  const hasEast = (walls & this.EAST) !== 0;
+                  const hasWest = (walls & this.WEST) !== 0;
+                  debug += `Cell [${x},${y}]: N:${hasNorth ? '1' : '0'} S:${hasSouth ? '1' : '0'} E:${hasEast ? '1' : '0'} W:${hasWest ? '1' : '0'}\n`;
+              }
+              debug += '\n';
+          }
+          // Check connectivity for single level mazes
+          if (this.levels === 1) {
+              debug += `\nConnectivity Check:\n`;
+              const entranceCell = maze.grid[0][0];
+              const exitCell = maze.grid[maze.height - 1][maze.width - 1];
+              debug += `Entrance cell [0,0]: N:${(entranceCell.walls & this.NORTH) !== 0 ? '1' : '0'} S:${(entranceCell.walls & this.SOUTH) !== 0 ? '1' : '0'} E:${(entranceCell.walls & this.EAST) !== 0 ? '1' : '0'} W:${(entranceCell.walls & this.WEST) !== 0 ? '1' : '0'}\n`;
+              debug += `Exit cell [${maze.width - 1},${maze.height - 1}]: N:${(exitCell.walls & this.NORTH) !== 0 ? '1' : '0'} S:${(exitCell.walls & this.SOUTH) !== 0 ? '1' : '0'} E:${(exitCell.walls & this.EAST) !== 0 ? '1' : '0'} W:${(exitCell.walls & this.WEST) !== 0 ? '1' : '0'}\n`;
+          }
+          console.log(debug);
+          return debug;
       }
   }
   // Global variables
@@ -752,6 +832,9 @@
   function generateCommand() {
       if (!mazeGenerator)
           return;
+      // Ensure we're using the current maze data that's displayed
+      // Force a refresh of the display to make sure we have the latest maze
+      updateDisplay();
       let { wallSize, wallHeight, walkSize, block, levels, addRoof, generateHoles, holesPerLevel, generateLadders } = config;
       // Use user values directly
       // Each level: floor (1), walls (wallHeight), so total per level = 1 + wallHeight
@@ -815,32 +898,48 @@
           }
           // 3b. Add solid perimeter walls, with entrance/exit openings
           // Calculate entrance/exit positions
-          const entranceX = 0;
-          const entranceZ = wallSize + Math.floor(walkSize / 2);
-          const exitX = totalWidth - 1;
-          const exitZ = wallSize + (mazeHeight - 1) * (walkSize + wallSize) + Math.floor(walkSize / 2);
+          // For single level mazes: entrance on west wall, exit on east wall
+          // For multi-level mazes: entrance on north wall of first level, exit on south wall of last level
+          let entranceX, entranceZ, exitX, exitZ;
+          if (levels === 1) {
+              // Single level maze: entrance on west wall, exit on east wall
+              entranceX = 0;
+              entranceZ = wallSize + Math.floor(walkSize / 2);
+              exitX = totalWidth - 1;
+              exitZ = wallSize + (mazeHeight - 1) * (walkSize + wallSize) + Math.floor(walkSize / 2);
+          }
+          else {
+              // Multi-level maze: entrance on north wall of first level, exit on south wall of last level
+              entranceX = wallSize + Math.floor(walkSize / 2);
+              entranceZ = 0;
+              exitX = wallSize + (mazeWidth - 1) * (walkSize + wallSize) + Math.floor(walkSize / 2);
+              exitZ = totalHeight - 1;
+          }
           // North edge (z = 0)
           for (let x = 0; x < totalWidth; x++) {
-              // Only skip the single entrance block on the first level
-              if (level === 0 && x === entranceX && 0 === entranceZ)
+              // Only skip the single entrance block on the first level for multi-level mazes
+              if (levels > 1 && level === 0 && x === entranceX && 0 === entranceZ)
                   continue;
               commands.push(`fill ~${x} ~${floorY + 1} ~0 ~${x} ~${wallTopY} ~0 ${block}\n`);
           }
           // South edge (z = totalHeight - 1)
           for (let x = 0; x < totalWidth; x++) {
+              // Only skip the single exit block on the last level for multi-level mazes
+              if (levels > 1 && level === levels - 1 && x === exitX && totalHeight - 1 === exitZ)
+                  continue;
               commands.push(`fill ~${x} ~${floorY + 1} ~${totalHeight - 1} ~${x} ~${wallTopY} ~${totalHeight - 1} ${block}\n`);
           }
           // West edge (x = 0)
           for (let z = 0; z < totalHeight; z++) {
-              // Only skip the single entrance block on the first level
-              if (level === 0 && 0 === entranceX && z === entranceZ)
+              // Only skip the single entrance block on the first level for single level mazes
+              if (levels === 1 && level === 0 && 0 === entranceX && z === entranceZ)
                   continue;
               commands.push(`fill ~0 ~${floorY + 1} ~${z} ~0 ~${wallTopY} ~${z} ${block}\n`);
           }
           // East edge (x = totalWidth - 1)
           for (let z = 0; z < totalHeight; z++) {
-              // Only skip the single exit block on the last level
-              if (level === levels - 1 && totalWidth - 1 === exitX && z === exitZ)
+              // Only skip the single exit block on the last level for single level mazes
+              if (levels === 1 && level === levels - 1 && totalWidth - 1 === exitX && z === exitZ)
                   continue;
               commands.push(`fill ~${totalWidth - 1} ~${floorY + 1} ~${z} ~${totalWidth - 1} ~${wallTopY} ~${z} ${block}\n`);
           }
@@ -1055,6 +1154,13 @@
       updateDisplay();
   }
   const drawDelay = debounce(draw, 500);
+  // Global debug function
+  window.debugMaze = function () {
+      if (mazeGenerator) {
+          return mazeGenerator.debugMazeStructure(mazeGenerator.currentLevel);
+      }
+      return 'No maze generator available';
+  };
   // Event listeners
   document.addEventListener('change', validate);
   document.addEventListener('input', (event) => {

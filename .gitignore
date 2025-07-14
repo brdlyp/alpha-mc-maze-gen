@@ -5,3 +5,5 @@ package-lock.json
 .examples/
 examples/
 .DS_Store
+output/
+references/
