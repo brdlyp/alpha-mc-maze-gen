@@ -516,11 +516,10 @@
           const maze = this.mazes[levelIndex];
           if (!maze)
               return holeCells;
-          let holesGenerated = 0;
+          // --- FIX: In 3D mode, return all vertical passages, ignore holesPerLevel ---
+          const is3D = config.mazeGenerationMode === '3D';
           for (let y = 0; y < maze.height; y++) {
               for (let x = 0; x < maze.width; x++) {
-                  if (holesGenerated >= holesPerLevel)
-                      break;
                   const cell = maze.grid[y][x];
                   if ((cell.hasUp && levelIndex < this.levels - 1) || (cell.hasDown && levelIndex > 0)) {
                       holeCells.push({
@@ -529,11 +528,16 @@
                           hasUp: cell.hasUp && levelIndex < this.levels - 1,
                           hasDown: cell.hasDown && levelIndex > 0
                       });
-                      holesGenerated++;
                   }
               }
-              if (holesGenerated >= holesPerLevel)
-                  break;
+          }
+          if (!is3D && holesPerLevel > 0 && holeCells.length > holesPerLevel) {
+              // Shuffle and limit for 2D mode
+              for (let i = holeCells.length - 1; i > 0; i--) {
+                  const j = Math.floor(Math.random() * (i + 1));
+                  [holeCells[i], holeCells[j]] = [holeCells[j], holeCells[i]];
+              }
+              return holeCells.slice(0, holesPerLevel);
           }
           return holeCells;
       }
@@ -1170,6 +1174,24 @@
       }
       return 'No maze generator available';
   };
+  // Add this function near other UI helpers
+  function updateHoleOptionsUI() {
+      const is3D = config.mazeGenerationMode === '3D';
+      const holeOptionsWrapper = document.getElementById('holeOptionsWrapper');
+      const holeOptionsNote = document.getElementById('holeOptionsNote');
+      const generateHolesLabel = document.getElementById('generateHolesLabel');
+      const holesPerLevelField = document.getElementById('holesPerLevelField');
+      if (holeOptionsWrapper && holeOptionsNote && generateHolesLabel && holesPerLevelField) {
+          if (is3D) {
+              holeOptionsWrapper.style.display = 'none';
+              holeOptionsNote.style.display = 'block';
+          }
+          else {
+              holeOptionsWrapper.style.display = '';
+              holeOptionsNote.style.display = 'none';
+          }
+      }
+  }
   // Event listeners
   document.addEventListener('change', validate);
   document.addEventListener('input', (event) => {
@@ -1236,6 +1258,15 @@
               updateDisplay();
           });
       }
+      updateHoleOptionsUI();
+      // Add event listeners for maze generation mode radio buttons
+      const mazeGenerationModeRadios = document.querySelectorAll('input[name="mazeGenerationMode"]');
+      mazeGenerationModeRadios.forEach(radio => {
+          radio.addEventListener('change', () => {
+              updateHoleOptionsUI();
+              regenerateMaze();
+          });
+      });
   });
   // Initialize
   draw();
