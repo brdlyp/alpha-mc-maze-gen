@@ -92,10 +92,11 @@
     
     /* Exact block layout styles */
     .exact-maze-cell {
-      width: 8px;
-      height: 8px;
+      width: 20px;
+      height: 20px;
       border: 1px solid #666;
       box-sizing: border-box;
+      flex-shrink: 0;
     }
     
     .exact-path {
@@ -251,7 +252,7 @@
           </div>
         </div>
         <div class="box">
-          <p class="help">Version: 2.0.67</p>
+          <p class="help">Version: 2.0.69</p>
         </div>
         <div class="box">
           <h4 class="title is-6">Credits</h4>
@@ -314,23 +315,23 @@
               <!-- Exact block layout legend -->
               <div id="exact-legend" style="display: none;">
                 <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
-                  <div class="legend-color" style="width: 8px; height: 8px; border: 1px solid #666; background: white;"></div>
+                  <div class="legend-color" style="width: 20px; height: 20px; border: 1px solid #666; background: white;"></div>
                   <span>Path</span>
                 </div>
                 <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
-                  <div class="legend-color" style="width: 8px; height: 8px; border: 1px solid #666; background: #777;"></div>
+                  <div class="legend-color" style="width: 20px; height: 20px; border: 1px solid #666; background: #777;"></div>
                   <span>Wall</span>
                 </div>
                 <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
-                  <div class="legend-color" style="width: 8px; height: 8px; border: 1px solid #666; background: #90EE90;"></div>
+                  <div class="legend-color" style="width: 20px; height: 20px; border: 1px solid #666; background: #90EE90;"></div>
                   <span>Entrance</span>
                 </div>
                 <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
-                  <div class="legend-color" style="width: 8px; height: 8px; border: 1px solid #666; background: #FFB6C1;"></div>
+                  <div class="legend-color" style="width: 20px; height: 20px; border: 1px solid #666; background: #FFB6C1;"></div>
                   <span>Exit</span>
                 </div>
                 <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
-                  <div class="legend-color" style="width: 8px; height: 8px; border: 1px solid #666; background: #ffff00;"></div>
+                  <div class="legend-color" style="width: 20px; height: 20px; border: 1px solid #666; background: #ffff00;"></div>
                   <span>Hole + Ladder</span>
                 </div>
               </div>

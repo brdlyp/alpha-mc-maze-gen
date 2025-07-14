@@ -388,7 +388,7 @@ class MultiLevelMaze {
         const blockClass = this.getBlockClass(blockType);
         const blockTitle = this.getBlockTitle(blockType, x, z);
         
-        html += `<div class="exact-maze-cell ${blockClass}" title="${blockTitle}" style="width: 8px; height: 8px; border: 1px solid #666; box-sizing: border-box;"></div>`;
+        html += `<div class="exact-maze-cell ${blockClass}" title="${blockTitle}" data-x="${x}" data-z="${z}"></div>`;
       }
       html += '</div>';
     }
@@ -679,6 +679,16 @@ function updateDisplay() {
       if (mazeGrid) {
         const cells = mazeGrid.querySelectorAll('.maze-cell');
         cells.forEach(cell => {
+          (cell as HTMLElement).style.width = `${finalCellSize}px`;
+          (cell as HTMLElement).style.height = `${finalCellSize}px`;
+        });
+      }
+      
+      // Apply dynamic sizing to exact block layout cells
+      const exactMazeGrid = mazeDisplay.querySelector('.exact-maze-grid');
+      if (exactMazeGrid) {
+        const exactCells = exactMazeGrid.querySelectorAll('.exact-maze-cell');
+        exactCells.forEach(cell => {
           (cell as HTMLElement).style.width = `${finalCellSize}px`;
           (cell as HTMLElement).style.height = `${finalCellSize}px`;
         });
