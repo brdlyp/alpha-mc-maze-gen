@@ -43,8 +43,6 @@
   // Multi-Level Maze Generator
   class MultiLevelMaze {
       constructor(width, height, levels) {
-          // Add property to store holes per level
-          this.holeCellsByLevel = [];
           this.width = width;
           this.height = height;
           this.levels = levels;
@@ -108,117 +106,8 @@
           this.generateMaze();
           // Create individual maze objects for each level
           this.createLevelMazes();
-          // Store holes per level
-          this.holeCellsByLevel = [];
-          if (config.mazeGenerationMode === '2D') {
-              for (let z = 0; z < this.levels; z++) {
-                  this.holeCellsByLevel[z] = this._generateRandomHolesForLevel(z, config.generateHoles, config.holesPerLevel);
-              }
-          }
-          else {
-              // In 3D mode, holes are all vertical passages from the maze algorithm
-              for (let z = 0; z < this.levels; z++) {
-                  this.holeCellsByLevel[z] = [];
-                  if (z < this.levels - 1) {
-                      for (let y = 0; y < this.height; y++) {
-                          for (let x = 0; x < this.width; x++) {
-                              // If this cell has an UP passage, add a hole here
-                              if ((this.grid[z][y][x] & this.UP) !== 0) {
-                                  this.holeCellsByLevel[z].push({ x, y, hasUp: true, hasDown: false });
-                              }
-                          }
-                      }
-                  }
-                  if (z > 0) {
-                      for (let y = 0; y < this.height; y++) {
-                          for (let x = 0; x < this.width; x++) {
-                              // If this cell has a DOWN passage, add a hole here
-                              if ((this.grid[z][y][x] & this.DOWN) !== 0) {
-                                  // Only add if not already present (avoid duplicates)
-                                  if (!this.holeCellsByLevel[z].some(h => h.x === x && h.y === y)) {
-                                      this.holeCellsByLevel[z].push({ x, y, hasUp: false, hasDown: true });
-                                  }
-                              }
-                          }
-                      }
-                  }
-              }
-          }
       }
       generateMaze() {
-          if (config.mazeGenerationMode === '2D') {
-              // Generate independent 2D mazes for each level
-              this.generate2DMazes();
-          }
-          else {
-              // Generate connected 3D maze
-              this.generate3DMaze();
-          }
-      }
-      generate2DMazes() {
-          // Generate each level as an independent 2D maze
-          for (let z = 0; z < this.levels; z++) {
-              this.generateSingleLevelMaze(z);
-          }
-      }
-      generateSingleLevelMaze(levelZ) {
-          // Use Growing Tree algorithm for a single 2D level
-          const cells = [];
-          const visited = new Set();
-          // Start from top-left cell of this level
-          const startX = 0;
-          const startY = 0;
-          cells.push({ x: startX, y: startY });
-          visited.add(`${startX},${startY}`);
-          while (cells.length > 0) {
-              // Choose cell selection method: 50% random, 50% newest
-              const useRandom = Math.random() < 0.5;
-              const index = useRandom ? Math.floor(Math.random() * cells.length) : cells.length - 1;
-              const current = cells[index];
-              const neighbors = this.getUnvisited2DNeighbors(current.x, current.y, levelZ, visited);
-              if (neighbors.length === 0) {
-                  // No unvisited neighbors, remove this cell
-                  cells.splice(index, 1);
-              }
-              else {
-                  // Choose a random unvisited neighbor
-                  const next = neighbors[Math.floor(Math.random() * neighbors.length)];
-                  const direction = this.get2DDirection(current, next);
-                  // Carve passage
-                  this.grid[levelZ][current.y][current.x] |= direction;
-                  this.grid[levelZ][next.y][next.x] |= this.opposite[direction];
-                  visited.add(`${next.x},${next.y}`);
-                  cells.push(next);
-              }
-          }
-          // Ensure entrance and exit for this level
-          if (this.levels === 1) {
-              // Single level: force west passage for entrance, east passage for exit
-              this.grid[levelZ][0][0] |= this.WEST; // Entrance: west wall of top-left cell
-              this.grid[levelZ][this.height - 1][this.width - 1] |= this.EAST; // Exit: east wall of bottom-right cell
-              // Ensure the exit cell is connected to the maze
-              if (this.width > 1) {
-                  this.grid[levelZ][this.height - 1][this.width - 2] |= this.EAST;
-                  this.grid[levelZ][this.height - 1][this.width - 1] |= this.WEST;
-              }
-              if (this.height > 1) {
-                  this.grid[levelZ][this.height - 2][this.width - 1] |= this.SOUTH;
-                  this.grid[levelZ][this.height - 1][this.width - 1] |= this.NORTH;
-              }
-          }
-          else {
-              // Multi-level: each level has its own entrance/exit
-              // For first level: north entrance
-              if (levelZ === 0) {
-                  this.grid[levelZ][0][0] |= this.NORTH;
-              }
-              // For last level: south exit
-              if (levelZ === this.levels - 1) {
-                  this.grid[levelZ][this.height - 1][this.width - 1] |= this.SOUTH;
-              }
-          }
-      }
-      generate3DMaze() {
           // Use Growing Tree algorithm with 50/50 split between random and newest
           const cells = [];
           const visited = new Set();
@@ -288,19 +177,6 @@
           }
           return neighbors;
       }
-      getUnvisited2DNeighbors(x, y, levelZ, visited) {
-          const neighbors = [];
-          // Only check 2D directions (no UP/DOWN)
-          const directions2D = [this.NORTH, this.SOUTH, this.EAST, this.WEST];
-          for (const dir of directions2D) {
-              const nx = x + this.dx[dir];
-              const ny = y + this.dy[dir];
-              if (this.isValid2DCell(nx, ny, levelZ) && !visited.has(`${nx},${ny}`)) {
-                  neighbors.push({ x: nx, y: ny });
-              }
-          }
-          return neighbors;
-      }
       getDirection(from, to) {
           const dx = to.x - from.x;
           const dy = to.y - from.y;
@@ -319,24 +195,8 @@
               return this.DOWN;
           return 0;
       }
-      get2DDirection(from, to) {
-          const dx = to.x - from.x;
-          const dy = to.y - from.y;
-          if (dx === 1)
-              return this.EAST;
-          if (dx === -1)
-              return this.WEST;
-          if (dy === 1)
-              return this.SOUTH;
-          if (dy === -1)
-              return this.NORTH;
-          return 0;
-      }
       isValidCell(x, y, z) {
           return x >= 0 && x < this.width && y >= 0 && y < this.height && z >= 0 && z < this.levels;
-      }
-      isValid2DCell(x, y, levelZ) {
-          return x >= 0 && x < this.width && y >= 0 && y < this.height && levelZ >= 0 && levelZ < this.levels;
       }
       createLevelMazes() {
           this.mazes = [];
@@ -364,95 +224,92 @@
           const maze = this.mazes[levelIndex];
           if (!maze)
               return '';
-          const { wallSize, walkSize, generateLadders } = config;
+          // Get current wall and path sizes from config
+          const { wallSize, walkSize, generateHoles, holesPerLevel, generateLadders } = config;
           let html = '<div class="maze-grid">';
+          // Calculate total grid dimensions based on wall and path sizes
+          const totalWidth = maze.width * walkSize + (maze.width + 1) * wallSize;
           // Top border row (all walls)
           html += '<div class="maze-row">';
-          for (let x = 0; x < maze.width * walkSize + (maze.width + 1) * wallSize; x++) {
-              html += '<div class="maze-cell wall"></div>';
+          for (let x = 0; x < totalWidth; x++) {
+              // Check for entrance hole on north wall for multi-level mazes
+              if (this.levels > 1 && levelIndex === 0 && x === wallSize + Math.floor(walkSize / 2)) {
+                  html += '<div class="maze-cell path"></div>';
+              }
+              else {
+                  html += '<div class="maze-cell wall"></div>';
+              }
           }
           html += '</div>';
           for (let y = 0; y < maze.height; y++) {
+              // For each maze row, we need walkSize rows in the display
               for (let displayRow = 0; displayRow < walkSize; displayRow++) {
                   html += '<div class="maze-row">';
-                  for (let i = 0; i < wallSize; i++) {
-                      html += '<div class="maze-cell wall"></div>';
+                  // Left border wall
+                  if (this.levels === 1 && levelIndex === 0 && y === 0) {
+                      // Single level maze: entrance hole on west wall for first cell
+                      for (let i = 0; i < walkSize; i++) {
+                          html += '<div class="maze-cell path"></div>';
+                      }
                   }
+                  else {
+                      // Solid left border wall
+                      for (let i = 0; i < wallSize; i++) {
+                          html += '<div class="maze-cell wall"></div>';
+                      }
+                  }
+                  // Cells with passages
                   for (let x = 0; x < maze.width; x++) {
                       const cell = maze.grid[y][x];
                       const hasEast = (cell.walls & this.EAST) !== 0;
+                      // Cell content (path area)
                       for (let i = 0; i < walkSize; i++) {
-                          // --- FIX: Shift path cells so (0,0) is top-left path cell ---
-                          const worldX = wallSize + x * (walkSize + wallSize) + i;
-                          const worldZ = wallSize + y * (walkSize + wallSize) + displayRow;
-                          let tooltip = `Block (${worldX}, ${worldZ})\nMaze cell (${x},${y})`;
-                          const holeCells = this.getHoleCells(levelIndex);
-                          const holeCell = holeCells.find(hole => hole.x === x && hole.y === y);
-                          let ladderInfo = '';
-                          if (holeCell && generateLadders) {
-                              // Determine ladder direction
-                              const cellObj = maze.grid[y][x];
-                              let facingText = '';
-                              if (cellObj && cellObj.walls !== undefined) {
-                                  if (y > 0 && (maze.grid[y - 1][x].walls & this.SOUTH) === 0) {
-                                      facingText = 'North (-Z)';
-                                  }
-                                  else if ((cellObj.walls & this.SOUTH) === 0) {
-                                      facingText = 'South (+Z)';
-                                  }
-                                  else if (x > 0 && (maze.grid[y][x - 1].walls & this.EAST) === 0) {
-                                      facingText = 'West (-X)';
-                                  }
-                                  else if ((cellObj.walls & this.EAST) === 0) {
-                                      facingText = 'East (+X)';
-                                  }
-                              }
-                              if (holeCell.hasUp && holeCell.hasDown) {
-                                  ladderInfo = `Ladder Up/Down, Facing: ${facingText}`;
-                              }
-                              else if (holeCell.hasUp) {
-                                  ladderInfo = `Ladder Up, Facing: ${facingText}`;
-                              }
-                              else if (holeCell.hasDown) {
-                                  ladderInfo = `Ladder Down, Facing: ${facingText}`;
-                              }
-                          }
-                          if (ladderInfo)
-                              tooltip += `\n${ladderInfo}`;
-                          html += `<div class="maze-cell path" title="${tooltip}">`;
+                          html += '<div class="maze-cell path">';
+                          // Add up/down indicators only in the center of the path
                           if (displayRow === Math.floor(walkSize / 2)) {
-                              let showUp = false, showDown = false;
-                              if (holeCell) {
-                                  showUp = holeCell.hasUp;
-                                  showDown = holeCell.hasDown;
+                              // Use the shared function to determine which cells should show indicators
+                              const holeCells = this.getHoleCells(levelIndex, generateHoles, holesPerLevel);
+                              const isHoleCell = holeCells.some(hole => hole.x === x && hole.y === y);
+                              let showUp = false;
+                              let showDown = false;
+                              if (isHoleCell) {
+                                  const holeCell = holeCells.find(hole => hole.x === x && hole.y === y);
+                                  if (holeCell) {
+                                      showUp = holeCell.hasUp;
+                                      showDown = holeCell.hasDown;
+                                  }
                               }
+                              // Show indicators based on config
                               if (showUp && generateLadders) {
-                                  html += `<div class="maze-indicator up" title="${tooltip}" style="pointer-events: auto;"></div>`;
+                                  html += `<div class="maze-indicator up"></div>`;
                               }
                               else if (showUp && !generateLadders) {
-                                  html += `<div class="maze-indicator horizontal" style="background: #ffaaaa; pointer-events: auto;" title="Hole only (no ladder)"></div>`;
+                                  html += `<div class="maze-indicator horizontal" style="background: #ffaaaa;" title="Hole only (no ladder)"></div>`;
                               }
                               else {
-                                  html += `<div class="maze-indicator horizontal" title="${tooltip}" style="pointer-events: auto;"></div>`;
+                                  html += `<div class="maze-indicator horizontal"></div>`;
                               }
                               if (showDown && generateLadders) {
-                                  html += `<div class="maze-indicator down" title="${tooltip}" style="pointer-events: auto;"></div>`;
+                                  html += `<div class="maze-indicator down"></div>`;
                               }
                               else if (showDown && !generateLadders) {
-                                  html += `<div class="maze-indicator horizontal" style="background: #aaaaff; pointer-events: auto;" title="Hole only (no ladder)"></div>`;
+                                  html += `<div class="maze-indicator horizontal" style="background: #aaaaff;" title="Hole only (no ladder)"></div>`;
                               }
                               else {
-                                  html += `<div class="maze-indicator horizontal" title="${tooltip}" style="pointer-events: auto;"></div>`;
+                                  html += `<div class="maze-indicator horizontal"></div>`;
                               }
                           }
                           html += '</div>';
                       }
-                      if (hasEast) {
+                      // Right wall of cell
+                      if (hasEast || (this.levels === 1 && levelIndex === this.levels - 1 && y === maze.height - 1 && x === maze.width - 1)) {
+                          // Path opening - either east passage or exit hole for single level maze
                           for (let i = 0; i < walkSize; i++) {
                               html += '<div class="maze-cell path"></div>';
                           }
                       }
                       else {
+                          // Solid wall
                           for (let i = 0; i < wallSize; i++) {
                               html += '<div class="maze-cell wall"></div>';
                           }
@@ -460,8 +317,10 @@
                   }
                   html += '</div>';
               }
+              // Bottom wall row (except last maze row)
               if (y < maze.height - 1) {
                   html += '<div class="maze-row">';
+                  // Left border wall
                   for (let i = 0; i < wallSize; i++) {
                       html += '<div class="maze-cell wall"></div>';
                   }
@@ -469,15 +328,18 @@
                       const cell = maze.grid[y][x];
                       const hasSouth = (cell.walls & this.SOUTH) !== 0;
                       if (hasSouth) {
+                          // Path opening
                           for (let i = 0; i < walkSize; i++) {
                               html += '<div class="maze-cell path"></div>';
                           }
                       }
                       else {
+                          // Solid wall
                           for (let i = 0; i < wallSize; i++) {
                               html += '<div class="maze-cell wall"></div>';
                           }
                       }
+                      // Wall intersection
                       for (let i = 0; i < wallSize; i++) {
                           html += '<div class="maze-cell wall"></div>';
                       }
@@ -485,31 +347,39 @@
                   html += '</div>';
               }
           }
+          // Bottom border row (all walls)
           html += '<div class="maze-row">';
-          for (let x = 0; x < maze.width * walkSize + (maze.width + 1) * wallSize; x++) {
-              html += '<div class="maze-cell wall"></div>';
+          for (let x = 0; x < totalWidth; x++) {
+              // Check for exit hole on south wall for multi-level mazes
+              if (this.levels > 1 && levelIndex === this.levels - 1 && x === wallSize + (maze.width - 1) * (walkSize + wallSize) + Math.floor(walkSize / 2)) {
+                  html += '<div class="maze-cell path"></div>';
+              }
+              else {
+                  html += '<div class="maze-cell wall"></div>';
+              }
           }
           html += '</div>';
           html += '</div>';
           return html;
       }
-      // --- FIX: Exact block layout view coordinate alignment ---
+      // New method: Render exact one-to-one block representation
       renderExactBlockLayout(levelIndex) {
           const maze = this.mazes[levelIndex];
           if (!maze)
               return '';
-          const { wallSize, walkSize, generateLadders } = config;
+          const { wallSize, walkSize, generateHoles, holesPerLevel, generateLadders } = config;
+          // Calculate exact dimensions (same as command generation)
           const totalWidth = maze.width * walkSize + (maze.width + 1) * wallSize;
           const totalHeight = maze.height * walkSize + (maze.height + 1) * wallSize;
           let html = '<div class="exact-maze-grid" style="border: 2px solid #333; background: #333; display: inline-block;">';
           html += '<div class="grid-info" style="background: #f0f0f0; padding: 5px; margin-bottom: 10px; font-size: 12px;">';
           html += `Exact Block Layout - Level ${levelIndex + 1} | Dimensions: ${totalWidth}×${totalHeight} blocks`;
           html += '</div>';
+          // Render each block exactly as it appears in Minecraft
           for (let z = 0; z < totalHeight; z++) {
               html += '<div class="exact-maze-row" style="display: flex;">';
               for (let x = 0; x < totalWidth; x++) {
-                  // --- FIX: Adjust blockType and blockTitle to match new alignment ---
-                  const blockType = this.getBlockTypeAt(levelIndex, x, z, wallSize, walkSize, generateLadders);
+                  const blockType = this.getBlockTypeAt(levelIndex, x, z, wallSize, walkSize, generateHoles, holesPerLevel, generateLadders);
                   const blockClass = this.getBlockClass(blockType);
                   const blockTitle = this.getBlockTitle(blockType, x, z);
                   html += `<div class="exact-maze-cell ${blockClass}" title="${blockTitle}" data-x="${x}" data-z="${z}"></div>`;
@@ -520,7 +390,7 @@
           return html;
       }
       // Helper method to determine block type at specific coordinates
-      getBlockTypeAt(levelIndex, x, z, wallSize, walkSize, generateLadders) {
+      getBlockTypeAt(levelIndex, x, z, wallSize, walkSize, generateHoles, holesPerLevel, generateLadders) {
           const maze = this.mazes[levelIndex];
           if (!maze)
               return 'unknown';
@@ -575,8 +445,8 @@
           }
           // This is a path block
           // Check if it's a hole location
-          if (config.generateHoles) {
-              const holeCells = this.getHoleCells(levelIndex);
+          if (generateHoles) {
+              const holeCells = this.getHoleCells(levelIndex, generateHoles, holesPerLevel);
               const isHoleCell = holeCells.some(hole => hole.x === cellX && hole.y === cellY);
               if (isHoleCell) {
                   const holeCell = holeCells.find(hole => hole.x === cellX && hole.y === cellY);
@@ -639,41 +509,31 @@
           return html;
       }
       // Shared function to determine which cells should have holes/ladders
-      getHoleCells(levelIndex) {
-          if (this.holeCellsByLevel && this.holeCellsByLevel[levelIndex]) {
-              return this.holeCellsByLevel[levelIndex];
-          }
-          return [];
-      }
-      // New private method to generate and store holes for a level
-      _generateRandomHolesForLevel(levelIndex, generateHoles, holesPerLevel) {
+      getHoleCells(levelIndex, generateHoles, holesPerLevel) {
           const holeCells = [];
           if (!generateHoles)
               return holeCells;
           const maze = this.mazes[levelIndex];
           if (!maze)
               return holeCells;
-          const eligibleCells = [];
+          let holesGenerated = 0;
           for (let y = 0; y < maze.height; y++) {
               for (let x = 0; x < maze.width; x++) {
+                  if (holesGenerated >= holesPerLevel)
+                      break;
                   const cell = maze.grid[y][x];
                   if ((cell.hasUp && levelIndex < this.levels - 1) || (cell.hasDown && levelIndex > 0)) {
-                      eligibleCells.push({
+                      holeCells.push({
                           x: x,
                           y: y,
                           hasUp: cell.hasUp && levelIndex < this.levels - 1,
                           hasDown: cell.hasDown && levelIndex > 0
                       });
+                      holesGenerated++;
                   }
               }
-          }
-          for (let i = eligibleCells.length - 1; i > 0; i--) {
-              const j = Math.floor(Math.random() * (i + 1));
-              [eligibleCells[i], eligibleCells[j]] = [eligibleCells[j], eligibleCells[i]];
-          }
-          const cellsToUse = Math.min(holesPerLevel, eligibleCells.length);
-          for (let i = 0; i < cellsToUse; i++) {
-              holeCells.push(eligibleCells[i]);
+              if (holesGenerated >= holesPerLevel)
+                  break;
           }
           return holeCells;
       }
@@ -981,7 +841,7 @@
       // Ensure we're using the current maze data that's displayed
       // Force a refresh of the display to make sure we have the latest maze
       updateDisplay();
-      let { wallSize, wallHeight, walkSize, block, levels, addRoof, generateLadders } = config;
+      let { wallSize, wallHeight, walkSize, block, levels, addRoof, generateHoles, holesPerLevel, generateLadders } = config;
       // Use user values directly
       // Each level: floor (1), walls (wallHeight), so total per level = 1 + wallHeight
       const commands = [
@@ -1091,14 +951,17 @@
           }
           // 4. Carve floor holes for ladder connections (before ladders are placed)
           if (config.generateHoles) {
-              const holeCells = mazeGenerator.getHoleCells(level);
-              for (const holeCell of holeCells) {
-                  // Center of the path cell
-                  const px = holeCell.x * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
-                  const pz = holeCell.y * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
-                  // Carve hole in floor for up/down connections
-                  commands.push(`# Floor hole at level ${level + 1}, cell (${holeCell.x}, ${holeCell.y}), coordinates (~${px}, ~${floorY}, ~${pz})\n`);
-                  commands.push(`setblock ~${px} ~${floorY} ~${pz} air\n`);
+              // --- FIX: Only carve floor holes for levels above 0 ---
+              if (level > 0) {
+                  const holeCells = mazeGenerator.getHoleCells(level, generateHoles, holesPerLevel);
+                  for (const holeCell of holeCells) {
+                      // Center of the path cell
+                      const px = holeCell.x * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
+                      const pz = holeCell.y * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
+                      // Carve hole in floor for up/down connections
+                      commands.push(`# Floor hole at level ${level + 1}, cell (${holeCell.x}, ${holeCell.y}), coordinates (~${px}, ~${floorY}, ~${pz})\n`);
+                      commands.push(`setblock ~${px} ~${floorY} ~${pz} air\n`);
+                  }
               }
           }
           // 5. Explicitly carve entrance and exit holes at the very end (so they are never overwritten)
@@ -1123,8 +986,7 @@
           commands.push(`fill ~0 ~${lastWallTopY + 1} ~0 ~${totalWidth - 1} ~${lastWallTopY + 1} ~${totalHeight - 1} ${block}\n`);
       }
       // 6. Place all ladders AFTER all walls and floors are built
-      const is3D = config.mazeGenerationMode === '3D';
-      if ((is3D && generateLadders) || (!is3D && generateLadders && config.generateHoles)) {
+      if (generateLadders && generateHoles) {
           commands.push(`# Ladder Placement (after all walls are built)\n`);
           for (let level = 0; level < levels; level++) {
               const maze = mazeGenerator.mazes[level];
@@ -1133,71 +995,85 @@
               const levelY = level * (1 + wallHeight);
               const floorY = levelY;
               const wallTopY = levelY + wallHeight;
-              const holeCells = mazeGenerator.getHoleCells(level);
+              const holeCells = mazeGenerator.getHoleCells(level, generateHoles, holesPerLevel);
               for (const holeCell of holeCells) {
                   const x = holeCell.x;
                   const y = holeCell.y;
-                  // Calculate the center of the path cell where the ladder should be placed
-                  const ladderX = x * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
-                  const ladderZ = y * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
-                  // Returns the facing direction for the ladder (2=north, 3=south, 4=west, 5=east)
-                  // and the offset for the block behind the ladder
-                  function findWallDirectionAndOffset(cellX, cellY) {
-                      const cell = maze.grid[cellY][cellX];
-                      // North wall
-                      if (cellY > 0 && (maze.grid[cellY - 1][cellX].walls & mazeGenerator.SOUTH) === 0) {
-                          return { facing: 2, dx: 0, dz: -1 };
-                      }
-                      // South wall
-                      if ((cell.walls & mazeGenerator.SOUTH) === 0) {
-                          return { facing: 3, dx: 0, dz: 1 };
-                      }
-                      // West wall
-                      if (cellX > 0 && (maze.grid[cellY][cellX - 1].walls & mazeGenerator.EAST) === 0) {
-                          return { facing: 4, dx: -1, dz: 0 };
-                      }
-                      // East wall
-                      if ((cell.walls & mazeGenerator.EAST) === 0) {
-                          return { facing: 5, dx: 1, dz: 0 };
-                      }
-                      return null;
-                  }
-                  // Up ladder (to next level) - only place if not the last level
-                  if (holeCell.hasUp && level < levels - 1) {
+                  // Up ladder (to next level)
+                  if (holeCell.hasUp) {
                       commands.push(`# Up ladder at level ${level + 1}, cell (${x}, ${y})\n`);
-                      const wall = findWallDirectionAndOffset(x, y);
-                      if (wall !== null) {
-                          for (let ladderY = floorY + 1; ladderY <= wallTopY; ladderY++) {
-                              // Place solid block behind ladder
-                              const behindX = ladderX + wall.dx;
-                              const behindZ = ladderZ + wall.dz;
-                              commands.push(`setblock ~${behindX} ~${ladderY} ~${behindZ} stone\n`);
-                              // Place ladder
-                              commands.push(`setblock ~${ladderX} ~${ladderY} ~${ladderZ} ladder ${wall.facing}\n`);
+                      // Try each wall in order: N, S, W, E
+                      const wallOptions = [
+                          { dx: 0, dz: -1, dir: mazeGenerator.NORTH, facing: 2 }, // North wall, faces south
+                          { dx: 0, dz: 1, dir: mazeGenerator.SOUTH, facing: 3 }, // South wall, faces north
+                          { dx: -1, dz: 0, dir: mazeGenerator.WEST, facing: 4 }, // West wall, faces east
+                          { dx: 1, dz: 0, dir: mazeGenerator.EAST, facing: 5 } // East wall, faces west
+                      ];
+                      let ladderPlaced = false;
+                      for (const wall of wallOptions) {
+                          // If the wall is solid (no passage in that direction)
+                          if ((maze.grid[y][x].walls & wall.dir) === 0) {
+                              // Use the exact same wall coordinate calculation as the wall building logic
+                              let wx, wz;
+                              if (wall.dx !== 0) {
+                                  // East/West wall - use horizontal wall coordinates
+                                  wx = x * (walkSize + wallSize) + wallSize;
+                                  wz = y * (walkSize + wallSize);
+                              }
+                              else {
+                                  // North/South wall - use vertical wall coordinates
+                                  wx = x * (walkSize + wallSize);
+                                  wz = y * (walkSize + wallSize) + wallSize;
+                              }
+                              // Place ladder on the wall
+                              for (let ladderY = floorY + 1; ladderY <= wallTopY + 2; ladderY++) {
+                                  commands.push(`setblock ~${wx} ~${ladderY} ~${wz} ladder ${wall.facing}\n`);
+                              }
+                              commands.push(`# Ladder placed on ${wall.dx !== 0 ? 'East/West' : 'North/South'} wall at coordinates (~${wx}, ~${floorY + 1}-${wallTopY + 2}, ~${wz}), facing ${wall.facing}\n`);
+                              ladderPlaced = true;
+                              break;
                           }
-                          commands.push(`# Up ladder placed at path coordinates (~${ladderX}, ~${floorY + 1}-${wallTopY}, ~${ladderZ}), facing ${wall.facing}\n`);
                       }
-                      else {
-                          commands.push(`# WARNING: No adjacent wall found for up ladder at cell (${x}, ${y}) on level ${level + 1}\n`);
+                      if (!ladderPlaced) {
+                          commands.push(`# WARNING: No solid wall found for up ladder at cell (${x}, ${y}) on level ${level + 1}\n`);
                       }
                   }
-                  // Down ladder (to previous level) - only place if not the first level
-                  if (holeCell.hasDown && level > 0) {
+                  // Down ladder (to previous level)
+                  if (holeCell.hasDown) {
                       commands.push(`# Down ladder at level ${level + 1}, cell (${x}, ${y})\n`);
-                      const wall = findWallDirectionAndOffset(x, y);
-                      if (wall !== null) {
-                          for (let ladderY = floorY + 1; ladderY <= wallTopY; ladderY++) {
-                              // Place solid block behind ladder
-                              const behindX = ladderX + wall.dx;
-                              const behindZ = ladderZ + wall.dz;
-                              commands.push(`setblock ~${behindX} ~${ladderY} ~${behindZ} stone\n`);
-                              // Place ladder
-                              commands.push(`setblock ~${ladderX} ~${ladderY} ~${ladderZ} ladder ${wall.facing}\n`);
+                      // Try each wall in order: N, S, W, E
+                      const wallOptions = [
+                          { dx: 0, dz: -1, dir: mazeGenerator.NORTH, facing: 2 }, // North wall, faces south
+                          { dx: 0, dz: 1, dir: mazeGenerator.SOUTH, facing: 3 }, // South wall, faces north
+                          { dx: -1, dz: 0, dir: mazeGenerator.WEST, facing: 4 }, // West wall, faces east
+                          { dx: 1, dz: 0, dir: mazeGenerator.EAST, facing: 5 } // East wall, faces west
+                      ];
+                      let ladderPlaced = false;
+                      for (const wall of wallOptions) {
+                          if ((maze.grid[y][x].walls & wall.dir) === 0) {
+                              // Use the exact same wall coordinate calculation as the wall building logic
+                              let wx, wz;
+                              if (wall.dx !== 0) {
+                                  // East/West wall - use horizontal wall coordinates
+                                  wx = x * (walkSize + wallSize) + wallSize;
+                                  wz = y * (walkSize + wallSize);
+                              }
+                              else {
+                                  // North/South wall - use vertical wall coordinates
+                                  wx = x * (walkSize + wallSize);
+                                  wz = y * (walkSize + wallSize) + wallSize;
+                              }
+                              // Place ladder on the wall
+                              for (let ladderY = floorY + 1; ladderY <= wallTopY + 2; ladderY++) {
+                                  commands.push(`setblock ~${wx} ~${ladderY} ~${wz} ladder ${wall.facing}\n`);
+                              }
+                              commands.push(`# Ladder placed on ${wall.dx !== 0 ? 'East/West' : 'North/South'} wall at coordinates (~${wx}, ~${floorY + 1}-${wallTopY + 2}, ~${wz}), facing ${wall.facing}\n`);
+                              ladderPlaced = true;
+                              break;
                           }
-                          commands.push(`# Down ladder placed at path coordinates (~${ladderX}, ~${floorY + 1}-${wallTopY}, ~${ladderZ}), facing ${wall.facing}\n`);
                       }
-                      else {
-                          commands.push(`# WARNING: No adjacent wall found for down ladder at cell (${x}, ${y}) on level ${level + 1}\n`);
+                      if (!ladderPlaced) {
+                          commands.push(`# WARNING: No solid wall found for down ladder at cell (${x}, ${y}) on level ${level + 1}\n`);
                       }
                   }
               }
@@ -1360,34 +1236,6 @@
               updateDisplay();
           });
       }
-      // Helper to update hole options UI
-      function updateHoleOptionsUI() {
-          const is3D = config.mazeGenerationMode === '3D';
-          const holeOptionsWrapper = document.getElementById('holeOptionsWrapper');
-          const holeOptionsNote = document.getElementById('holeOptionsNote');
-          const generateHolesLabel = document.getElementById('generateHolesLabel');
-          const holesPerLevelField = document.getElementById('holesPerLevelField');
-          if (holeOptionsWrapper && holeOptionsNote && generateHolesLabel && holesPerLevelField) {
-              if (is3D) {
-                  holeOptionsWrapper.style.display = 'none';
-                  holeOptionsNote.style.display = 'block';
-              }
-              else {
-                  holeOptionsWrapper.style.display = '';
-                  holeOptionsNote.style.display = 'none';
-              }
-          }
-      }
-      // Initial update
-      updateHoleOptionsUI();
-      // Add event listeners for maze generation mode radio buttons
-      const mazeGenerationModeRadios = document.querySelectorAll('input[name="mazeGenerationMode"]');
-      mazeGenerationModeRadios.forEach(radio => {
-          radio.addEventListener('change', () => {
-              updateHoleOptionsUI();
-              regenerateMaze();
-          });
-      });
   });
   // Initialize
   draw();
