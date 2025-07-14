@@ -89,6 +89,75 @@
     .maze-indicator.down {
       background: #7ff;
     }
+    
+    /* Exact block layout styles */
+    .exact-maze-cell {
+      width: 8px;
+      height: 8px;
+      border: 1px solid #666;
+      box-sizing: border-box;
+    }
+    
+    .exact-path {
+      background: white;
+    }
+    
+    .exact-border-wall {
+      background: #555;
+    }
+    
+    .exact-vertical-wall {
+      background: #777;
+    }
+    
+    .exact-horizontal-wall {
+      background: #777;
+    }
+    
+    .exact-wall-pillar {
+      background: #999;
+    }
+    
+    .exact-entrance {
+      background: #90EE90;
+    }
+    
+    .exact-exit {
+      background: #FFB6C1;
+    }
+    
+    .exact-hole-up-ladder {
+      background: #ffff00;
+    }
+    
+    .exact-hole-down-ladder {
+      background: #87ceeb;
+    }
+    
+    .exact-hole-up-only {
+      background: #ffaaaa;
+    }
+    
+    .exact-hole-down-only {
+      background: #aaaaff;
+    }
+    
+    .exact-unknown {
+      background: #ff0000;
+    }
+    
+    .display-toggle {
+      margin-bottom: 15px;
+    }
+    
+    .display-toggle button {
+      margin-right: 10px;
+    }
+    
+    .display-toggle button.active {
+      background-color: #3273dc;
+      color: white;
+    }
   </style>
 </head>
 
@@ -214,27 +283,59 @@
               <button class="button is-small" onclick="nextLevel()" id="nextBtn">Next →</button>
             </div>
             
+            <div class="display-toggle">
+              <button class="button is-small active" onclick="switchDisplay('schematic')" id="schematicBtn">Schematic View</button>
+              <button class="button is-small" onclick="switchDisplay('exact')" id="exactBtn">Exact Block Layout</button>
+            </div>
+            
             <div id="mazeDisplay" style="display: flex; align-items: center; justify-content: center; min-height: 400px; padding: 20px; position: relative;"></div>
             
-            <div class="legend" style="margin-top: 20px; display: flex; justify-content: center; gap: 20px;">
-              <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
-                <div class="legend-color yellow" style="width: 20px; height: 20px; border: 1px solid #666; background: #ffff00;"></div>
-                <span>Hole + Ladder (Up)</span>
+            <div id="legend" class="legend" style="margin-top: 20px; display: flex; justify-content: center; gap: 20px;">
+              <!-- Schematic view legend -->
+              <div id="schematic-legend">
+                <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
+                  <div class="legend-color yellow" style="width: 20px; height: 20px; border: 1px solid #666; background: #ffff00;"></div>
+                  <span>Hole + Ladder (Up)</span>
+                </div>
+                <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
+                  <div class="legend-color blue" style="width: 20px; height: 20px; border: 1px solid #666; background: #87ceeb;"></div>
+                  <span>Hole + Ladder (Down)</span>
+                </div>
+                <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
+                  <div class="legend-color red" style="width: 20px; height: 20px; border: 1px solid #666; background: #ffaaaa;"></div>
+                  <span>Hole Only (Up)</span>
+                </div>
+                <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
+                  <div class="legend-color purple" style="width: 20px; height: 20px; border: 1px solid #666; background: #aaaaff;"></div>
+                  <span>Hole Only (Down)</span>
+                </div>
               </div>
-              <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
-                <div class="legend-color blue" style="width: 20px; height: 20px; border: 1px solid #666; background: #87ceeb;"></div>
-                <span>Hole + Ladder (Down)</span>
-              </div>
-              <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
-                <div class="legend-color red" style="width: 20px; height: 20px; border: 1px solid #666; background: #ffaaaa;"></div>
-                <span>Hole Only (Up)</span>
-              </div>
-              <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
-                <div class="legend-color purple" style="width: 20px; height: 20px; border: 1px solid #666; background: #aaaaff;"></div>
-                <span>Hole Only (Down)</span>
+              
+              <!-- Exact block layout legend -->
+              <div id="exact-legend" style="display: none;">
+                <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
+                  <div class="legend-color" style="width: 8px; height: 8px; border: 1px solid #666; background: white;"></div>
+                  <span>Path</span>
+                </div>
+                <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
+                  <div class="legend-color" style="width: 8px; height: 8px; border: 1px solid #666; background: #777;"></div>
+                  <span>Wall</span>
+                </div>
+                <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
+                  <div class="legend-color" style="width: 8px; height: 8px; border: 1px solid #666; background: #90EE90;"></div>
+                  <span>Entrance</span>
+                </div>
+                <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
+                  <div class="legend-color" style="width: 8px; height: 8px; border: 1px solid #666; background: #FFB6C1;"></div>
+                  <span>Exit</span>
+                </div>
+                <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
+                  <div class="legend-color" style="width: 8px; height: 8px; border: 1px solid #666; background: #ffff00;"></div>
+                  <span>Hole + Ladder</span>
+                </div>
               </div>
             </div>
-            <div style="margin-top: 10px; font-size: 12px; color: #666; text-align: center;">
+            <div id="legend-note" style="margin-top: 10px; font-size: 12px; color: #666; text-align: center;">
               <strong>Note:</strong> Indicators show hole locations (center of cells). Ladders are placed on adjacent walls.
             </div>
           </div>

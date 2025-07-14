@@ -363,6 +363,142 @@ class MultiLevelMaze {
     html += '</div>';
     return html;
   }
+
+  // New method: Render exact one-to-one block representation
+  renderExactBlockLayout(levelIndex: number) {
+    const maze = this.mazes[levelIndex];
+    if (!maze) return '';
+    
+    const { wallSize, walkSize, generateHoles, holesPerLevel, generateLadders } = config;
+    
+    // Calculate exact dimensions (same as command generation)
+    const totalWidth = maze.width * walkSize + (maze.width + 1) * wallSize;
+    const totalHeight = maze.height * walkSize + (maze.height + 1) * wallSize;
+    
+    let html = '<div class="exact-maze-grid" style="border: 2px solid #333; background: #333; display: inline-block;">';
+    html += '<div class="grid-info" style="background: #f0f0f0; padding: 5px; margin-bottom: 10px; font-size: 12px;">';
+    html += `Exact Block Layout - Level ${levelIndex + 1} | Dimensions: ${totalWidth}×${totalHeight} blocks`;
+    html += '</div>';
+    
+    // Render each block exactly as it appears in Minecraft
+    for (let z = 0; z < totalHeight; z++) {
+      html += '<div class="exact-maze-row" style="display: flex;">';
+      for (let x = 0; x < totalWidth; x++) {
+        const blockType = this.getBlockTypeAt(levelIndex, x, z, wallSize, walkSize, generateHoles, holesPerLevel, generateLadders);
+        const blockClass = this.getBlockClass(blockType);
+        const blockTitle = this.getBlockTitle(blockType, x, z);
+        
+        html += `<div class="exact-maze-cell ${blockClass}" title="${blockTitle}" style="width: 8px; height: 8px; border: 1px solid #666; box-sizing: border-box;"></div>`;
+      }
+      html += '</div>';
+    }
+    
+    html += '</div>';
+    return html;
+  }
+  
+  // Helper method to determine block type at specific coordinates
+  getBlockTypeAt(levelIndex: number, x: number, z: number, wallSize: number, walkSize: number, generateHoles: boolean, holesPerLevel: number, generateLadders: boolean): string {
+    const maze = this.mazes[levelIndex];
+    if (!maze) return 'unknown';
+    
+    // Calculate which maze cell this block belongs to
+    const cellX = Math.floor(x / (walkSize + wallSize));
+    const cellZ = Math.floor(z / (walkSize + wallSize));
+    
+    // Check if this is a border block
+    if (x === 0 || x === maze.width * walkSize + (maze.width + 1) * wallSize - 1 || 
+        z === 0 || z === maze.height * walkSize + (maze.height + 1) * wallSize - 1) {
+      
+      // Check for entrance/exit openings
+      if (levelIndex === 0 && x === 0 && z === wallSize + Math.floor(walkSize / 2)) {
+        return 'entrance';
+      }
+      if (levelIndex === this.levels - 1 && x === maze.width * walkSize + (maze.width + 1) * wallSize - 1 && 
+          z === wallSize + (maze.height - 1) * (walkSize + wallSize) + Math.floor(walkSize / 2)) {
+        return 'exit';
+      }
+      return 'border-wall';
+    }
+    
+    // Check if this is a wall intersection (pillar)
+    const isWallX = (x % (walkSize + wallSize)) < wallSize;
+    const isWallZ = (z % (walkSize + wallSize)) < wallSize;
+    
+    if (isWallX && isWallZ) {
+      return 'wall-pillar';
+    }
+    
+    // Check if this is a vertical wall
+    if (isWallX && !isWallZ) {
+      const cell = maze.grid[cellZ][cellX];
+      const hasEast = (cell && (cell.walls & this.EAST) !== 0);
+      return hasEast ? 'path' : 'vertical-wall';
+    }
+    
+    // Check if this is a horizontal wall
+    if (!isWallX && isWallZ) {
+      const cell = maze.grid[cellZ][cellX];
+      const hasSouth = (cell && (cell.walls & this.SOUTH) !== 0);
+      return hasSouth ? 'path' : 'horizontal-wall';
+    }
+    
+    // This is a path block
+    // Check if it's a hole location
+    if (generateHoles) {
+      const holeCells = this.getHoleCells(levelIndex, generateHoles, holesPerLevel);
+      const isHoleCell = holeCells.some(hole => hole.x === cellX && hole.y === cellZ);
+      if (isHoleCell) {
+        const holeCell = holeCells.find(hole => hole.x === cellX && hole.y === cellZ);
+        if (holeCell) {
+          if (holeCell.hasUp && generateLadders) return 'hole-up-ladder';
+          if (holeCell.hasUp && !generateLadders) return 'hole-up-only';
+          if (holeCell.hasDown && generateLadders) return 'hole-down-ladder';
+          if (holeCell.hasDown && !generateLadders) return 'hole-down-only';
+        }
+      }
+    }
+    
+    return 'path';
+  }
+  
+  // Helper method to get CSS class for block type
+  getBlockClass(blockType: string): string {
+    const classes: { [key: string]: string } = {
+      'path': 'exact-path',
+      'border-wall': 'exact-border-wall',
+      'vertical-wall': 'exact-vertical-wall',
+      'horizontal-wall': 'exact-horizontal-wall',
+      'wall-pillar': 'exact-wall-pillar',
+      'entrance': 'exact-entrance',
+      'exit': 'exact-exit',
+      'hole-up-ladder': 'exact-hole-up-ladder',
+      'hole-down-ladder': 'exact-hole-down-ladder',
+      'hole-up-only': 'exact-hole-up-only',
+      'hole-down-only': 'exact-hole-down-only',
+      'unknown': 'exact-unknown'
+    };
+    return classes[blockType] || 'exact-unknown';
+  }
+  
+  // Helper method to get title/tooltip for block
+  getBlockTitle(blockType: string, x: number, z: number): string {
+    const titles: { [key: string]: string } = {
+      'path': `Path block at (${x}, ${z})`,
+      'border-wall': `Border wall at (${x}, ${z})`,
+      'vertical-wall': `Vertical wall at (${x}, ${z})`,
+      'horizontal-wall': `Horizontal wall at (${x}, ${z})`,
+      'wall-pillar': `Wall pillar at (${x}, ${z})`,
+      'entrance': `Entrance at (${x}, ${z})`,
+      'exit': `Exit at (${x}, ${z})`,
+      'hole-up-ladder': `Hole with up ladder at (${x}, ${z})`,
+      'hole-down-ladder': `Hole with down ladder at (${x}, ${z})`,
+      'hole-up-only': `Hole only (up) at (${x}, ${z})`,
+      'hole-down-only': `Hole only (down) at (${x}, ${z})`,
+      'unknown': `Unknown block at (${x}, ${z})`
+    };
+    return titles[blockType] || `Unknown block at (${x}, ${z})`;
+  }
   
   renderTreeView() {
     let html = '';
@@ -407,6 +543,7 @@ class MultiLevelMaze {
 
 // Global variables
 let mazeGenerator: MultiLevelMaze | null = null;
+let currentDisplayMode: 'schematic' | 'exact' = 'schematic';
 
 function debounce(func: () => void, wait: number) {
   let timeout: number;
@@ -509,7 +646,12 @@ function updateDisplay() {
   // Update maze display
   const mazeDisplay = document.getElementById('mazeDisplay');
   if (mazeDisplay) {
-    mazeDisplay.innerHTML = mazeGenerator.renderLevel(mazeGenerator.currentLevel);
+    // Render based on current display mode
+    if (currentDisplayMode === 'exact') {
+      mazeDisplay.innerHTML = mazeGenerator.renderExactBlockLayout(mazeGenerator.currentLevel);
+    } else {
+      mazeDisplay.innerHTML = mazeGenerator.renderLevel(mazeGenerator.currentLevel);
+    }
     
     // Calculate optimal cell size based on available space to ensure perfect squares
     const container = mazeDisplay.parentElement;
@@ -950,6 +1092,41 @@ function selectLevel(level: number) {
   }
 }
 
+function switchDisplay(mode: 'schematic' | 'exact') {
+  currentDisplayMode = mode;
+  
+  // Update button states
+  const schematicBtn = document.getElementById('schematicBtn') as HTMLButtonElement;
+  const exactBtn = document.getElementById('exactBtn') as HTMLButtonElement;
+  
+  if (schematicBtn) {
+    schematicBtn.classList.toggle('active', mode === 'schematic');
+  }
+  if (exactBtn) {
+    exactBtn.classList.toggle('active', mode === 'exact');
+  }
+  
+  // Update legend visibility
+  const schematicLegend = document.getElementById('schematic-legend');
+  const exactLegend = document.getElementById('exact-legend');
+  const legendNote = document.getElementById('legend-note');
+  
+  if (schematicLegend) {
+    schematicLegend.style.display = mode === 'schematic' ? 'flex' : 'none';
+  }
+  if (exactLegend) {
+    exactLegend.style.display = mode === 'exact' ? 'flex' : 'none';
+  }
+  if (legendNote) {
+    legendNote.textContent = mode === 'schematic' 
+      ? 'Note: Indicators show hole locations (center of cells). Ladders are placed on adjacent walls.'
+      : 'Note: Each pixel represents exactly one Minecraft block. Hover over blocks for coordinate information.';
+  }
+  
+  // Update display
+  updateDisplay();
+}
+
 const drawDelay = debounce(draw, 500);
 
 // Event listeners
@@ -1035,5 +1212,6 @@ updateDimensions();
 (window as any).nextLevel = nextLevel;
 (window as any).previousLevel = previousLevel;
 (window as any).selectLevel = selectLevel;
+(window as any).switchDisplay = switchDisplay;
 (window as any).refreshDisplay = refreshDisplay;
 (window as any).regenerateMaze = regenerateMaze;
