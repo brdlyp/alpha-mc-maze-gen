@@ -25,7 +25,7 @@ Use at your own risk, tweak as you like, and most importantly: have fun with it.
 
 ## 🚀 Live Demo
 
-Try the maze generator online: [Minecraft Maze Generator](https://brdlyp.github.io)
+Try the maze generator online: [Minecraft Maze Generator](https://brdlyp.github.io/alpha-mc-maze-gen/)
 
 ## 📋 Requirements
 
