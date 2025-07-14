@@ -1088,9 +1088,18 @@
                       for (const wall of wallOptions) {
                           // Only place ladders on internal walls (not boundary walls)
                           if ((maze.grid[y][x].walls & wall.dir) !== 0 && !isBoundaryWall(x, y, wall.dir, maze.width, maze.height, mazeGenerator.NORTH, mazeGenerator.SOUTH, mazeGenerator.WEST, mazeGenerator.EAST)) {
-                              // Calculate the solid block position (the wall)
-                              const wallX = x * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
-                              const wallZ = y * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
+                              // Calculate the solid block position (the wall) - using the same logic as wall placement
+                              let wallX, wallZ;
+                              if (wall.dir === mazeGenerator.NORTH || wall.dir === mazeGenerator.SOUTH) {
+                                  // Horizontal wall (north/south)
+                                  wallX = x * (walkSize + wallSize) + wallSize;
+                                  wallZ = y * (walkSize + wallSize);
+                              }
+                              else {
+                                  // Vertical wall (east/west)
+                                  wallX = x * (walkSize + wallSize);
+                                  wallZ = y * (walkSize + wallSize) + wallSize;
+                              }
                               // Calculate ladder position (adjacent to the wall)
                               let ladderX = wallX;
                               let ladderZ = wallZ;
@@ -1103,6 +1112,11 @@
                               const maxZ = maze.height * (walkSize + wallSize) + wallSize - 1;
                               ladderX = Math.max(0, Math.min(ladderX, maxX));
                               ladderZ = Math.max(0, Math.min(ladderZ, maxZ));
+                              // CRITICAL: Check if the block the ladder would be attached to is solid
+                              if (!isSolidBlock(level, wallX, wallZ, wallSize, walkSize, generateHoles, holesPerLevel, generateLadders)) {
+                                  commands.push(`# SKIPPED: Ladder not placed - wall block at (~${wallX}, ~${wallZ}) is not solid\n`);
+                                  continue; // Try next wall option
+                              }
                               // Ladder Count Formula: wallHeight + 2
                               // This ensures: wallHeight ladders up from floor + 1 for floor hole + 1 for next level clearance
                               const ladderCount = wallHeight + 2;
@@ -1132,9 +1146,18 @@
                       let ladderPlaced = false;
                       for (const wall of wallOptions) {
                           if ((maze.grid[y][x].walls & wall.dir) !== 0 && !isBoundaryWall(x, y, wall.dir, maze.width, maze.height, mazeGenerator.NORTH, mazeGenerator.SOUTH, mazeGenerator.WEST, mazeGenerator.EAST)) {
-                              // Calculate the solid block position (the wall)
-                              const wallX = x * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
-                              const wallZ = y * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
+                              // Calculate the solid block position (the wall) - using the same logic as wall placement
+                              let wallX, wallZ;
+                              if (wall.dir === mazeGenerator.NORTH || wall.dir === mazeGenerator.SOUTH) {
+                                  // Horizontal wall (north/south)
+                                  wallX = x * (walkSize + wallSize) + wallSize;
+                                  wallZ = y * (walkSize + wallSize);
+                              }
+                              else {
+                                  // Vertical wall (east/west)
+                                  wallX = x * (walkSize + wallSize);
+                                  wallZ = y * (walkSize + wallSize) + wallSize;
+                              }
                               // Calculate ladder position (adjacent to the wall)
                               let ladderX = wallX;
                               let ladderZ = wallZ;
@@ -1147,6 +1170,11 @@
                               const maxZ = maze.height * (walkSize + wallSize) + wallSize - 1;
                               ladderX = Math.max(0, Math.min(ladderX, maxX));
                               ladderZ = Math.max(0, Math.min(ladderZ, maxZ));
+                              // CRITICAL: Check if the block the ladder would be attached to is solid
+                              if (!isSolidBlock(level, wallX, wallZ, wallSize, walkSize, generateHoles, holesPerLevel, generateLadders)) {
+                                  commands.push(`# SKIPPED: Ladder not placed - wall block at (~${wallX}, ~${wallZ}) is not solid\n`);
+                                  continue; // Try next wall option
+                              }
                               // Ladder Count Formula: wallHeight + 2
                               // This ensures: wallHeight ladders up from floor + 1 for floor hole + 1 for next level clearance
                               const ladderCount = wallHeight + 2;
@@ -1287,6 +1315,20 @@
       if (dir === EAST && x === mazeWidth - 1)
           return true;
       return false;
+  }
+  // Helper: returns true if the block at the given coordinates is solid (can support a ladder)
+  function isSolidBlock(levelIndex, x, z, wallSize, walkSize, generateHoles, holesPerLevel, generateLadders) {
+      if (!mazeGenerator)
+          return false;
+      const blockType = mazeGenerator.getBlockTypeAt(levelIndex, x, z, wallSize, walkSize, generateHoles, holesPerLevel, generateLadders);
+      // Solid blocks that can support ladders
+      const solidBlockTypes = [
+          'border-wall',
+          'vertical-wall',
+          'horizontal-wall',
+          'wall-pillar'
+      ];
+      return solidBlockTypes.includes(blockType);
   }
   // Event listeners
   document.addEventListener('change', validate);
