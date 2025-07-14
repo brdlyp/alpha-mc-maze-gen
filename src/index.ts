@@ -1182,23 +1182,23 @@ function generateCommand() {
               ladderZ = Math.max(0, Math.min(ladderZ, maxZ));
               
               // CRITICAL: Check if the block the ladder would be attached to is solid
-              if (!isSolidBlock(level, wallX, wallZ, wallSize, walkSize, generateHoles, holesPerLevel, generateLadders)) {
-                commands.push(`# SKIPPED: Ladder not placed - wall block at (~${wallX}, ~${wallZ}) is not solid\n`);
-                continue; // Try next wall option
-              }
-              
-              // Ladder Count Formula: wallHeight + 2
-              // This ensures: wallHeight ladders up from floor + 1 for floor hole + 1 for next level clearance
+              // We need to check if there's actually a wall block at the ladder's Y level
               const ladderCount = wallHeight + 2;
               const ladderStartY = floorY + 1;
               const ladderEndY = ladderStartY + ladderCount - 1;
-              
+              let anyLadderPlaced = false;
               for (let ladderY = ladderStartY; ladderY <= ladderEndY; ladderY++) {
-                commands.push(`setblock ~${ladderX} ~${ladderY} ~${ladderZ} ladder ${wall.facing}\n`);
+                // 3D check: only place ladder if wall exists at this Y
+                if (isSolidBlock(wallX, ladderY, wallZ, wallSize, wallHeight, walkSize)) {
+                  commands.push(`setblock ~${ladderX} ~${ladderY} ~${ladderZ} ladder ${wall.facing}\n`);
+                  anyLadderPlaced = true;
+                }
               }
-              commands.push(`# Ladder placed adjacent to ${wall.dx !== 0 ? 'East/West' : 'North/South'} wall at coordinates (~${ladderX}, ~${ladderStartY}-${ladderEndY}, ~${ladderZ}), facing ${wall.facing} (${ladderCount} ladders total)\n`);
-              ladderPlaced = true;
-              break;
+              if (anyLadderPlaced) {
+                commands.push(`# Ladder placed adjacent to ${wall.dx !== 0 ? 'East/West' : 'North/South'} wall at coordinates (~${ladderX}, ~${ladderStartY}-${ladderEndY}, ~${ladderZ}), facing ${wall.facing} (up to ${ladderCount} ladders total)\n`);
+                ladderPlaced = true;
+                break;
+              }
             }
           }
           if (!ladderPlaced) {
@@ -1221,11 +1221,11 @@ function generateCommand() {
               // Calculate the solid block position (the wall) - using the same logic as wall placement
               let wallX, wallZ;
               if (wall.dir === mazeGenerator.NORTH || wall.dir === mazeGenerator.SOUTH) {
-                // Horizontal wall (north/south)
+                // Horizontal wall (north/south) - wall is at the edge of the cell
                 wallX = x * (walkSize + wallSize) + wallSize;
                 wallZ = y * (walkSize + wallSize);
               } else {
-                // Vertical wall (east/west)
+                // Vertical wall (east/west) - wall is at the edge of the cell
                 wallX = x * (walkSize + wallSize);
                 wallZ = y * (walkSize + wallSize) + wallSize;
               }
@@ -1242,24 +1242,24 @@ function generateCommand() {
               ladderX = Math.max(0, Math.min(ladderX, maxX));
               ladderZ = Math.max(0, Math.min(ladderZ, maxZ));
               
-              // CRITICAL: Check if the block the ladder would be attached to is solid
-              if (!isSolidBlock(level, wallX, wallZ, wallSize, walkSize, generateHoles, holesPerLevel, generateLadders)) {
-                commands.push(`# SKIPPED: Ladder not placed - wall block at (~${wallX}, ~${wallZ}) is not solid\n`);
-                continue; // Try next wall option
-              }
-              
               // Ladder Count Formula: wallHeight + 2
               // This ensures: wallHeight ladders up from floor + 1 for floor hole + 1 for next level clearance
               const ladderCount = wallHeight + 2;
               const ladderStartY = floorY + 1;
               const ladderEndY = ladderStartY + ladderCount - 1;
-              
+              let anyLadderPlaced = false;
               for (let ladderY = ladderStartY; ladderY <= ladderEndY; ladderY++) {
-                commands.push(`setblock ~${ladderX} ~${ladderY} ~${ladderZ} ladder ${wall.facing}\n`);
+                // 3D check: only place ladder if wall exists at this Y
+                if (isSolidBlock(wallX, ladderY, wallZ, wallSize, wallHeight, walkSize)) {
+                  commands.push(`setblock ~${ladderX} ~${ladderY} ~${ladderZ} ladder ${wall.facing}\n`);
+                  anyLadderPlaced = true;
+                }
               }
-              commands.push(`# Ladder placed adjacent to ${wall.dx !== 0 ? 'East/West' : 'North/South'} wall at coordinates (~${ladderX}, ~${ladderStartY}-${ladderEndY}, ~${ladderZ}), facing ${wall.facing} (${ladderCount} ladders total)\n`);
-              ladderPlaced = true;
-              break;
+              if (anyLadderPlaced) {
+                commands.push(`# Ladder placed adjacent to ${wall.dx !== 0 ? 'East/West' : 'North/South'} wall at coordinates (~${ladderX}, ~${ladderStartY}-${ladderEndY}, ~${ladderZ}), facing ${wall.facing} (up to ${ladderCount} ladders total)\n`);
+                ladderPlaced = true;
+                break;
+              }
             }
           }
           if (!ladderPlaced) {
@@ -1400,20 +1400,33 @@ function isBoundaryWall(x: number, y: number, dir: number, mazeWidth: number, ma
 }
 
 // Helper: returns true if the block at the given coordinates is solid (can support a ladder)
-function isSolidBlock(levelIndex: number, x: number, z: number, wallSize: number, walkSize: number, generateHoles: boolean, holesPerLevel: number, generateLadders: boolean): boolean {
-  if (!mazeGenerator) return false;
-  
-  const blockType = mazeGenerator.getBlockTypeAt(levelIndex, x, z, wallSize, walkSize, generateHoles, holesPerLevel, generateLadders);
-  
-  // Solid blocks that can support ladders
-  const solidBlockTypes = [
-    'border-wall',
-    'vertical-wall', 
-    'horizontal-wall',
-    'wall-pillar'
-  ];
-  
-  return solidBlockTypes.includes(blockType);
+function isSolidBlock(x: number, y: number, z: number, wallSize: number, wallHeight: number, walkSize: number): boolean {
+  // This function checks if a wall block exists at (x, y, z) based on wall placement logic
+  // 1. Check if it's a pillar (intersection of walls)
+  if ((x % (walkSize + wallSize)) < wallSize && (z % (walkSize + wallSize)) < wallSize) {
+    // Pillar: placed from floorY+1 to wallTopY
+    const cellLevel = Math.floor(y / (1 + wallHeight));
+    const floorY = cellLevel * (1 + wallHeight);
+    const wallTopY = floorY + wallHeight;
+    return y >= floorY + 1 && y <= wallTopY;
+  }
+  // 2. Check if it's a vertical wall (north-south)
+  if ((x % (walkSize + wallSize)) < wallSize && (z % (walkSize + wallSize)) >= wallSize) {
+    const cellLevel = Math.floor(y / (1 + wallHeight));
+    const floorY = cellLevel * (1 + wallHeight);
+    const wallTopY = floorY + wallHeight;
+    return y >= floorY + 1 && y <= wallTopY;
+  }
+  // 3. Check if it's a horizontal wall (west-east)
+  if ((x % (walkSize + wallSize)) >= wallSize && (z % (walkSize + wallSize)) < wallSize) {
+    const cellLevel = Math.floor(y / (1 + wallHeight));
+    const floorY = cellLevel * (1 + wallHeight);
+    const wallTopY = floorY + wallHeight;
+    return y >= floorY + 1 && y <= wallTopY;
+  }
+  // 4. Check if it's a border wall (outermost edge)
+  // (This is a simplification; you may want to refine for entrances/exits)
+  return false;
 }
 
 // Event listeners
