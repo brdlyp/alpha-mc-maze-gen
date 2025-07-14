@@ -12,7 +12,8 @@ let config = {
   showChunkBorders: false,
   generateHoles: true, // Enable/disable generation of holes between levels
   holesPerLevel: 1,    // Number of holes per level
-  generateLadders: true // Enable/disable ladder generation for holes
+  generateLadders: true, // Enable/disable ladder generation for holes
+  mazeGenerationMode: '3D' // '2D' for independent level generation, '3D' for connected multi-level maze
 }
 
 config = new Proxy(config, {
@@ -20,6 +21,12 @@ config = new Proxy(config, {
     const el = document.querySelector(`[data-for="${String(prop)}"]`) as HTMLInputElement | undefined
     const fallback = (target as any)[prop]
     if (!el) return fallback
+
+    // Handle radio buttons - find the checked radio button with the same name
+    if (el.type === 'radio') {
+      const checkedRadio = document.querySelector(`input[name="${el.name}"]:checked`) as HTMLInputElement | undefined
+      return checkedRadio ? checkedRadio.value : fallback
+    }
 
     const data = el.value!
     if (typeof fallback === 'number') {

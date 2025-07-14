@@ -1,0 +1,17 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Axes -->
+  <line x1="100" y1="20" x2="100" y2="180" stroke="black" stroke-width="2"/>
+  <line x1="20" y1="100" x2="180" y2="100" stroke="black" stroke-width="2"/>
+
+  <!-- Arrowheads -->
+  <polygon points="95,25 105,25 100,15" fill="black"/>
+  <polygon points="95,175 105,175 100,185" fill="black"/>
+  <polygon points="25,95 25,105 15,100" fill="black"/>
+  <polygon points="175,95 175,105 185,100" fill="black"/>
+
+  <!-- Labels -->
+  <text x="100" y="10" font-size="12" text-anchor="middle">N (-Z)</text>
+  <text x="100" y="195" font-size="12" text-anchor="middle">S (+Z)</text>
+  <text x="0" y="95" font-size="12" text-anchor="start">W (-X)</text>
+  <text x="200" y="95" font-size="12" text-anchor="end">E (+X)</text>
+</svg>

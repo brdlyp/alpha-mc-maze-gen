@@ -196,20 +196,38 @@
         </div>
         <!-- Maze Options (new) -->
         <div class="box content">
-          <label class="checkbox">
-            <input type="checkbox" data-for="generateHoles" checked>
-            Generate holes between levels
-          </label>
+          <strong>Maze Generation Mode:</strong>
           <div class="field" style="margin-top: 10px;">
-            <label class="label">Number of holes per level</label>
-            <div class="control">
-              <input class="input" type="number" min="1" max="100" value="1" data-for="holesPerLevel">
-            </div>
+            <label class="radio">
+              <input type="radio" name="mazeGenerationMode" value="2D" data-for="mazeGenerationMode">
+              2D Maze Generation - Each level is a complete, independent maze
+            </label>
           </div>
-          <label class="checkbox" style="margin-top: 10px;">
-            <input type="checkbox" data-for="generateLadders" checked>
-            Generate ladders for holes
-          </label>
+          <div class="field">
+            <label class="radio">
+              <input type="radio" name="mazeGenerationMode" value="3D" data-for="mazeGenerationMode" checked>
+              3D Maze Generation - Connected multi-level maze (may have walled-off areas)
+            </label>
+          </div>
+          <div id="holeOptionsWrapper">
+            <label class="checkbox" id="generateHolesLabel" style="margin-top: 10px;">
+              <input type="checkbox" data-for="generateHoles" checked>
+              Generate holes between levels
+            </label>
+            <div class="field" style="margin-top: 10px;" id="holesPerLevelField">
+              <label class="label">Number of holes per level</label>
+              <div class="control">
+                <input class="input" type="number" min="1" max="100" value="1" data-for="holesPerLevel">
+              </div>
+            </div>
+            <label class="checkbox" style="margin-top: 10px;">
+              <input type="checkbox" data-for="generateLadders" checked>
+              Generate ladders for holes
+            </label>
+          </div>
+          <div id="holeOptionsNote" style="display:none; color:#888; font-size:13px; margin-top:10px;">
+            In 3D Maze mode, all vertical passages are determined by the maze algorithm for full connectivity. Manual hole selection is disabled.
+          </div>
         </div>
         <!-- End Maze Options -->
         <div class="box content">
@@ -252,7 +270,7 @@
           </div>
         </div>
         <div class="box">
-          <p class="help">Version: 2.0.97</p>
+          <p class="help">Version: 2.0.142</p>
         </div>
         <div class="box">
           <h4 class="title is-6">Credits</h4>
@@ -289,7 +307,23 @@
               <button class="button is-small" onclick="switchDisplay('exact')" id="exactBtn">Exact Block Layout</button>
             </div>
             
-            <div id="mazeDisplay" style="display: flex; align-items: center; justify-content: center; min-height: 400px; padding: 20px; position: relative;"></div>
+            <div style="position: relative; display: inline-block;">
+              <div id="compassContainer" style="position: absolute; left: -250px; top: -200px; z-index: 20; width: 250px; height: 250px;">
+                <svg width="250" height="250" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                  <line x1="100" y1="20" x2="100" y2="180" stroke="black" stroke-width="2"/>
+                  <line x1="20" y1="100" x2="180" y2="100" stroke="black" stroke-width="2"/>
+                  <polygon points="95,25 105,25 100,15" fill="black"/>
+                  <polygon points="95,175 105,175 100,185" fill="black"/>
+                  <polygon points="25,95 25,105 15,100" fill="black"/>
+                  <polygon points="175,95 175,105 185,100" fill="black"/>
+                  <text x="100" y="10" font-size="12" text-anchor="middle">N (-Z)</text>
+                  <text x="100" y="195" font-size="12" text-anchor="middle">S (+Z)</text>
+                  <text x="0" y="95" font-size="12" text-anchor="start">W (-X)</text>
+                  <text x="200" y="95" font-size="12" text-anchor="end">E (+X)</text>
+                </svg>
+              </div>
+              <div id="mazeDisplay" style="display: flex; align-items: center; justify-content: center; min-height: 400px; padding: 20px; position: relative;"></div>
+            </div>
             
             <div id="legend" class="legend" style="margin-top: 20px; display: flex; justify-content: center; gap: 20px;">
               <!-- Schematic view legend -->
