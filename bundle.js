@@ -355,7 +355,7 @@
               return 'unknown';
           // Calculate which maze cell this block belongs to
           const cellX = Math.floor(x / (walkSize + wallSize));
-          const cellZ = Math.floor(z / (walkSize + wallSize));
+          const cellY = Math.floor(z / (walkSize + wallSize));
           // Check if this is a border block
           if (x === 0 || x === maze.width * walkSize + (maze.width + 1) * wallSize - 1 ||
               z === 0 || z === maze.height * walkSize + (maze.height + 1) * wallSize - 1) {
@@ -377,13 +377,13 @@
           }
           // Check if this is a vertical wall
           if (isWallX && !isWallZ) {
-              const cell = maze.grid[cellZ][cellX];
+              const cell = maze.grid[cellY][cellX];
               const hasEast = (cell && (cell.walls & this.EAST) !== 0);
               return hasEast ? 'path' : 'vertical-wall';
           }
           // Check if this is a horizontal wall
           if (!isWallX && isWallZ) {
-              const cell = maze.grid[cellZ][cellX];
+              const cell = maze.grid[cellY][cellX];
               const hasSouth = (cell && (cell.walls & this.SOUTH) !== 0);
               return hasSouth ? 'path' : 'horizontal-wall';
           }
@@ -391,9 +391,9 @@
           // Check if it's a hole location
           if (generateHoles) {
               const holeCells = this.getHoleCells(levelIndex, generateHoles, holesPerLevel);
-              const isHoleCell = holeCells.some(hole => hole.x === cellX && hole.y === cellZ);
+              const isHoleCell = holeCells.some(hole => hole.x === cellX && hole.y === cellY);
               if (isHoleCell) {
-                  const holeCell = holeCells.find(hole => hole.x === cellX && hole.y === cellZ);
+                  const holeCell = holeCells.find(hole => hole.x === cellX && hole.y === cellY);
                   if (holeCell) {
                       if (holeCell.hasUp && generateLadders)
                           return 'hole-up-ladder';
