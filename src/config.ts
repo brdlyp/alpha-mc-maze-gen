@@ -13,6 +13,7 @@ let config = {
   generateHoles: true, // Enable/disable generation of holes between levels
   holesPerLevel: 1,    // Number of holes per level
   generateLadders: true, // Enable/disable ladder generation for holes
+  generateLadders3D: true, // Enable/disable ladder generation for 3D maze
   mazeGenerationMode: '3D' // '2D' for independent level generation, '3D' for connected multi-level maze
 }
 

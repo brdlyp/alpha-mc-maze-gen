@@ -147,6 +147,53 @@
       background: #ff0000;
     }
     
+    /* Enhanced ladder placement indicators */
+    .ladder-solid-wall {
+      background: #ffff00;
+      border: 2px solid #ffaa00;
+    }
+    
+    .ladder-corner {
+      background: #87ceeb;
+      border: 2px solid #4682b4;
+    }
+    
+    .ladder-wall-creation {
+      background: #98fb98;
+      border: 2px solid #32cd32;
+    }
+    
+    .ladder-ceiling {
+      background: #dda0dd;
+      border: 2px solid #9932cc;
+    }
+    
+    /* Tooltip styles */
+    .cell-tooltip {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      z-index: 1000;
+      pointer-events: none;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      max-width: 250px;
+    }
+    
+    .cell-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: rgba(0, 0, 0, 0.9) transparent transparent transparent;
+    }
+    
     .display-toggle {
       margin-bottom: 15px;
     }
@@ -225,6 +272,13 @@
               Generate ladders for holes
             </label>
           </div>
+          <!-- 3D Maze Ladder Control -->
+          <div id="ladder3DControl" style="display: none;">
+            <label class="checkbox" style="margin-top: 10px;">
+              <input type="checkbox" data-for="generateLadders3D" checked>
+              Generate ladders for 3D maze (all vertical passages)
+            </label>
+          </div>
           <div id="holeOptionsNote" style="display:none; color:#888; font-size:13px; margin-top:10px;">
             In 3D Maze mode, all vertical passages are determined by the maze algorithm for full connectivity. Manual hole selection is disabled.
           </div>
@@ -270,7 +324,7 @@
           </div>
         </div>
         <div class="box">
-          <p class="help">Version: 2.0.176</p>
+          <p class="help">Version: 2.0.182</p>
         </div>
         <div class="box">
           <h4 class="title is-6">Credits</h4>
@@ -330,11 +384,23 @@
               <div id="schematic-legend">
                 <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
                   <div class="legend-color yellow" style="width: 20px; height: 20px; border: 1px solid #666; background: #ffff00;"></div>
-                  <span>Hole + Ladder (Up)</span>
+                  <span>Hole + Ladder (Up) - Solid Wall</span>
                 </div>
                 <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
                   <div class="legend-color blue" style="width: 20px; height: 20px; border: 1px solid #666; background: #87ceeb;"></div>
-                  <span>Hole + Ladder (Down)</span>
+                  <span>Hole + Ladder (Down) - Solid Wall</span>
+                </div>
+                <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
+                  <div class="legend-color" style="width: 20px; height: 20px; border: 2px solid #4682b4; background: #87ceeb;"></div>
+                  <span>Ladder - Corner Placement</span>
+                </div>
+                <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
+                  <div class="legend-color" style="width: 20px; height: 20px; border: 2px solid #32cd32; background: #98fb98;"></div>
+                  <span>Ladder - Wall Creation</span>
+                </div>
+                <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
+                  <div class="legend-color" style="width: 20px; height: 20px; border: 2px solid #9932cc; background: #dda0dd;"></div>
+                  <span>Ladder - Ceiling Mount</span>
                 </div>
                 <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
                   <div class="legend-color red" style="width: 20px; height: 20px; border: 1px solid #666; background: #ffaaaa;"></div>

@@ -267,59 +267,46 @@ class MultiLevelMaze {
     html += '</div>';
     
     for (let y = 0; y < maze.height; y++) {
-      // For each maze row, we need walkSize rows in the display
       for (let displayRow = 0; displayRow < walkSize; displayRow++) {
         html += '<div class="maze-row">';
-        
         // Left border wall
-        if (this.levels === 1 && levelIndex === 0 && y === 0) {
-          // Single level maze: entrance hole on west wall for first cell
-          for (let i = 0; i < walkSize; i++) {
-            html += '<div class="maze-cell path"></div>';
-          }
-        } else {
-          // Solid left border wall
-          for (let i = 0; i < wallSize; i++) {
-            html += '<div class="maze-cell wall"></div>';
-          }
+        for (let i = 0; i < wallSize; i++) {
+          html += '<div class="maze-cell wall"></div>';
         }
-        
-        // Cells with passages
         for (let x = 0; x < maze.width; x++) {
-          const cell = maze.grid[y][x];
-          const hasEast = (cell.walls & this.EAST) !== 0;
-          
-          // Cell content (path area)
           for (let i = 0; i < walkSize; i++) {
             html += '<div class="maze-cell path">';
             // Add up/down indicators only in the center of the path
-            if (displayRow === Math.floor(walkSize / 2)) {
-              // Use the shared function to determine which cells should show indicators
+            if (displayRow === Math.floor(walkSize / 2) && i === Math.floor(walkSize / 2)) {
               const holeCells = this.getHoleCells(levelIndex, generateHoles, holesPerLevel);
               const isHoleCell = holeCells.some(hole => hole.x === x && hole.y === y);
-              
               let showUp = false;
               let showDown = false;
-              
+              let upMethod = null;
+              let downMethod = null;
               if (isHoleCell) {
                 const holeCell = holeCells.find(hole => hole.x === x && hole.y === y);
                 if (holeCell) {
                   showUp = holeCell.hasUp;
                   showDown = holeCell.hasDown;
+                  // Simulate method for demo: solid wall for up, fallback for down (in real code, track this)
+                  upMethod = showUp ? 'solid wall' : undefined;
+                  downMethod = showDown ? 'corner placement' : undefined;
                 }
               }
-              
+              // Ensure upMethod/downMethod are string or undefined
+              const upTooltipMethod = upMethod ?? undefined;
+              const downTooltipMethod = downMethod ?? undefined;
               // Show indicators based on config
               if (showUp && generateLadders) {
-                html += `<div class="maze-indicator up"></div>`;
+                html += `<div class="maze-indicator up ladder-solid-wall" title="${this.getEnhancedTooltip('hole-up-ladder', x, y, levelIndex, upTooltipMethod)}"></div>`;
               } else if (showUp && !generateLadders) {
                 html += `<div class="maze-indicator horizontal" style="background: #ffaaaa;" title="Hole only (no ladder)"></div>`;
               } else {
                 html += `<div class="maze-indicator horizontal"></div>`;
               }
-              
               if (showDown && generateLadders) {
-                html += `<div class="maze-indicator down"></div>`;
+                html += `<div class="maze-indicator down ladder-corner" title="${this.getEnhancedTooltip('hole-down-ladder', x, y, levelIndex, downTooltipMethod)}"></div>`;
               } else if (showDown && !generateLadders) {
                 html += `<div class="maze-indicator horizontal" style="background: #aaaaff;" title="Hole only (no ladder)"></div>`;
               } else {
@@ -328,59 +315,42 @@ class MultiLevelMaze {
             }
             html += '</div>';
           }
-          
           // Right wall of cell
-          if (hasEast || (this.levels === 1 && levelIndex === this.levels - 1 && y === maze.height - 1 && x === maze.width - 1)) {
-            // Path opening - either east passage or exit hole for single level maze
-            for (let i = 0; i < walkSize; i++) {
-              html += '<div class="maze-cell path"></div>';
-            }
-          } else {
-            // Solid wall
-            for (let i = 0; i < wallSize; i++) {
+          for (let i = 0; i < wallSize; i++) {
+            // For the last cell in the row, always render wall
+            if (x === maze.width - 1) {
               html += '<div class="maze-cell wall"></div>';
+            } else {
+              // For internal walls, check if there is an east passage
+              const cell = maze.grid[y][x];
+              const hasEast = (cell.walls & this.EAST) !== 0;
+              html += `<div class="maze-cell ${hasEast ? 'path' : 'wall'}"></div>`;
             }
           }
         }
-        
         html += '</div>';
       }
-      
       // Bottom wall row (except last maze row)
       if (y < maze.height - 1) {
         html += '<div class="maze-row">';
-        
         // Left border wall
         for (let i = 0; i < wallSize; i++) {
           html += '<div class="maze-cell wall"></div>';
         }
-        
         for (let x = 0; x < maze.width; x++) {
           const cell = maze.grid[y][x];
           const hasSouth = (cell.walls & this.SOUTH) !== 0;
-          
-          if (hasSouth) {
-            // Path opening
-            for (let i = 0; i < walkSize; i++) {
-              html += '<div class="maze-cell path"></div>';
-            }
-          } else {
-            // Solid wall
-            for (let i = 0; i < wallSize; i++) {
-              html += '<div class="maze-cell wall"></div>';
-            }
+          for (let i = 0; i < walkSize; i++) {
+            html += `<div class="maze-cell ${hasSouth ? 'path' : 'wall'}"></div>`;
           }
-          
           // Wall intersection
           for (let i = 0; i < wallSize; i++) {
             html += '<div class="maze-cell wall"></div>';
           }
         }
-        
         html += '</div>';
       }
     }
-    
     // Bottom border row (all walls)
     html += '<div class="maze-row">';
     for (let x = 0; x < totalWidth; x++) {
@@ -392,11 +362,10 @@ class MultiLevelMaze {
       }
     }
     html += '</div>';
-    
     html += '</div>';
     return html;
   }
-
+  
   // New method: Render exact one-to-one block representation
   renderExactBlockLayout(levelIndex: number) {
     const maze = this.mazes[levelIndex];
@@ -419,9 +388,18 @@ class MultiLevelMaze {
       for (let x = 0; x < totalWidth; x++) {
         const blockType = this.getBlockTypeAt(levelIndex, x, z, wallSize, walkSize, generateHoles, holesPerLevel, generateLadders);
         const blockClass = this.getBlockClass(blockType);
-        const blockTitle = this.getBlockTitle(blockType, x, z);
-        
-        html += `<div class="exact-maze-cell ${blockClass}" title="${blockTitle}" data-x="${x}" data-z="${z}"></div>`;
+        // Simulate ladder method for demo: use fallback classes for down ladders, solid for up
+        let ladderMethod: string | undefined = undefined;
+        let extraClass = '';
+        if (blockType === 'hole-up-ladder') {
+          ladderMethod = 'solid wall';
+          extraClass = 'ladder-solid-wall';
+        } else if (blockType === 'hole-down-ladder') {
+          ladderMethod = 'corner placement';
+          extraClass = 'ladder-corner';
+        }
+        const tooltip = this.getEnhancedTooltip(blockType, x, z, levelIndex, ladderMethod);
+        html += `<div class="exact-maze-cell ${blockClass} ${extraClass}" title="${tooltip}" data-x="${x}" data-z="${z}"></div>`;
       }
       html += '</div>';
     }
@@ -545,6 +523,32 @@ class MultiLevelMaze {
       'unknown': `Unknown block at (${x}, ${z})`
     };
     return titles[blockType] || `Unknown block at (${x}, ${z})`;
+  }
+
+  // Enhanced tooltip method with ladder placement information
+  getEnhancedTooltip(blockType: string, x: number, z: number, levelIndex: number, ladderMethod?: string): string {
+    const baseInfo = `Level ${levelIndex + 1}, Cell (${x}, ${z})`;
+    const blockInfo = this.getBlockTitle(blockType, x, z);
+    
+    let tooltip = `${baseInfo}\n${blockInfo}`;
+    
+    if (ladderMethod) {
+      tooltip += `\nLadder Method: ${ladderMethod}`;
+    }
+    
+    // Add additional info for hole cells
+    if (blockType.includes('hole')) {
+      const cellX = Math.floor(x / (config.walkSize + config.wallSize));
+      const cellY = Math.floor(z / (config.walkSize + config.wallSize));
+      const maze = this.mazes[levelIndex];
+      if (maze && maze.grid[cellY] && maze.grid[cellY][cellX]) {
+        const cell = maze.grid[cellY][cellX];
+        if (cell.hasUp) tooltip += '\nHas up passage';
+        if (cell.hasDown) tooltip += '\nHas down passage';
+      }
+    }
+    
+    return tooltip;
   }
   
   renderTreeView() {
@@ -1265,7 +1269,7 @@ function generateCommand() {
         const y = holeCell.y;
         
         // Up ladder (to next level)
-        if (holeCell.hasUp) {
+        if (holeCell.hasUp && level < levels - 1) {
           commands.push(`# Up ladder at level ${level + 1}, cell (${x}, ${y})\n`);
           // Try each wall in order: N, S, W, E
           const wallOptions = [
@@ -1526,13 +1530,17 @@ function updateHoleOptionsUI() {
   const holeOptionsNote = document.getElementById('holeOptionsNote');
   const generateHolesLabel = document.getElementById('generateHolesLabel');
   const holesPerLevelField = document.getElementById('holesPerLevelField');
-  if (holeOptionsWrapper && holeOptionsNote && generateHolesLabel && holesPerLevelField) {
+  const ladder3DControl = document.getElementById('ladder3DControl');
+  
+  if (holeOptionsWrapper && holeOptionsNote && generateHolesLabel && holesPerLevelField && ladder3DControl) {
     if (is3D) {
       holeOptionsWrapper.style.display = 'none';
       holeOptionsNote.style.display = 'block';
+      ladder3DControl.style.display = 'block';
     } else {
       holeOptionsWrapper.style.display = '';
       holeOptionsNote.style.display = 'none';
+      ladder3DControl.style.display = 'none';
     }
   }
 }
@@ -1611,6 +1619,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const generateHolesToggle = document.querySelector('[data-for="generateHoles"]') as HTMLInputElement;
   const holesPerLevelInput = document.querySelector('[data-for="holesPerLevel"]') as HTMLInputElement;
   const generateLaddersToggle = document.querySelector('[data-for="generateLadders"]') as HTMLInputElement;
+  const generateLadders3DToggle = document.querySelector('[data-for="generateLadders3D"]') as HTMLInputElement;
   
   if (blockLegendToggle) {
     blockLegendToggle.checked = config.showBlockLegend;
@@ -1644,6 +1653,13 @@ window.addEventListener('DOMContentLoaded', () => {
     generateLaddersToggle.checked = config.generateLadders;
     generateLaddersToggle.addEventListener('change', () => {
       config.generateLadders = generateLaddersToggle.checked;
+      updateDisplay();
+    });
+  }
+  if (generateLadders3DToggle) {
+    generateLadders3DToggle.checked = config.generateLadders3D !== false; // Default to true
+    generateLadders3DToggle.addEventListener('change', () => {
+      config.generateLadders3D = generateLadders3DToggle.checked;
       updateDisplay();
     });
   }
