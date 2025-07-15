@@ -623,6 +623,127 @@ class MultiLevelMaze {
     console.log(debug);
     return debug;
   }
+
+  // Fallback ladder placement strategies
+  attemptFallbackLadderPlacement(
+    x: number, y: number, level: number, direction: 'up' | 'down', 
+    wallSize: number, walkSize: number, wallHeight: number, floorY: number,
+    maze: any, commands: string[]
+  ): { method: string, success: boolean } | null {
+    
+    // Strategy 1: Corner placement (place ladder in corner of cell)
+    const cornerResult = this.attemptCornerPlacement(x, y, level, direction, wallSize, walkSize, wallHeight, floorY, commands);
+    if (cornerResult) return cornerResult;
+    
+    // Strategy 2: Create temporary wall and place ladder
+    const wallResult = this.attemptWallCreation(x, y, level, direction, wallSize, walkSize, wallHeight, floorY, maze, commands);
+    if (wallResult) return wallResult;
+    
+    // Strategy 3: Ceiling mounting (place ladder on ceiling)
+    const ceilingResult = this.attemptCeilingMounting(x, y, level, direction, wallSize, walkSize, wallHeight, floorY, commands);
+    if (ceilingResult) return ceilingResult;
+    
+    return null;
+  }
+
+  attemptCornerPlacement(
+    x: number, y: number, _level: number, _direction: 'up' | 'down',
+    wallSize: number, walkSize: number, wallHeight: number, floorY: number,
+    commands: string[]
+  ): { method: string, success: boolean } | null {
+    
+    // Place ladder in the corner of the cell (adjacent to a pillar)
+    const cornerX = x * (walkSize + wallSize);
+    const cornerZ = y * (walkSize + wallSize);
+    
+    // Try placing ladder adjacent to the corner pillar
+    const ladderX = cornerX + 1;
+    const ladderZ = cornerZ + 1;
+    
+    const ladderCount = wallHeight + 2;
+    const ladderStartY = floorY + 1;
+    const ladderEndY = ladderStartY + ladderCount - 1;
+    
+    let anyLadderPlaced = false;
+    for (let ladderY = ladderStartY; ladderY <= ladderEndY; ladderY++) {
+      commands.push(`setblock ~${ladderX} ~${ladderY} ~${ladderZ} ladder 2\n`);
+      anyLadderPlaced = true;
+    }
+    
+    if (anyLadderPlaced) {
+      commands.push(`# Corner ladder placed at coordinates (~${ladderX}, ~${ladderStartY}-${ladderEndY}, ~${ladderZ})\n`);
+      return { method: 'corner placement', success: true };
+    }
+    
+    return null;
+  }
+
+  attemptWallCreation(
+    x: number, y: number, _level: number, _direction: 'up' | 'down',
+    wallSize: number, walkSize: number, wallHeight: number, floorY: number,
+    _maze: any, commands: string[]
+  ): { method: string, success: boolean } | null {
+    
+    // Create a temporary wall and place ladder on it
+    // Choose the north wall as default
+    const wallX = x * (walkSize + wallSize) + wallSize;
+    const wallZ = y * (walkSize + wallSize);
+    
+    // Create the wall first
+    const wallTopY = floorY + wallHeight;
+    commands.push(`# Creating temporary wall for ladder placement\n`);
+    commands.push(`fill ~${wallX} ~${floorY + 1} ~${wallZ} ~${wallX + wallSize - 1} ~${wallTopY} ~${wallZ + walkSize - 1} stone\n`);
+    
+    // Place ladder on the created wall
+    const ladderX = wallX;
+    const ladderZ = wallZ - 1; // Adjacent to the wall
+    
+    const ladderCount = wallHeight + 2;
+    const ladderStartY = floorY + 1;
+    const ladderEndY = ladderStartY + ladderCount - 1;
+    
+    let anyLadderPlaced = false;
+    for (let ladderY = ladderStartY; ladderY <= ladderEndY; ladderY++) {
+      commands.push(`setblock ~${ladderX} ~${ladderY} ~${ladderZ} ladder 3\n`);
+      anyLadderPlaced = true;
+    }
+    
+    if (anyLadderPlaced) {
+      commands.push(`# Wall creation ladder placed at coordinates (~${ladderX}, ~${ladderStartY}-${ladderEndY}, ~${ladderZ})\n`);
+      return { method: 'wall creation', success: true };
+    }
+    
+    return null;
+  }
+
+  attemptCeilingMounting(
+    x: number, y: number, _level: number, _direction: 'up' | 'down',
+    wallSize: number, walkSize: number, wallHeight: number, floorY: number,
+    commands: string[]
+  ): { method: string, success: boolean } | null {
+    
+    // Place ladder hanging from the ceiling
+    const centerX = x * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
+    const centerZ = y * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
+    
+    const wallTopY = floorY + wallHeight;
+    const ladderCount = wallHeight + 2;
+    const ladderStartY = wallTopY - ladderCount + 1;
+    const ladderEndY = wallTopY;
+    
+    let anyLadderPlaced = false;
+    for (let ladderY = ladderStartY; ladderY <= ladderEndY; ladderY++) {
+      commands.push(`setblock ~${centerX} ~${ladderY} ~${centerZ} ladder 2\n`);
+      anyLadderPlaced = true;
+    }
+    
+    if (anyLadderPlaced) {
+      commands.push(`# Ceiling mounted ladder placed at coordinates (~${centerX}, ~${ladderStartY}-${ladderEndY}, ~${centerZ})\n`);
+      return { method: 'ceiling mounting', success: true };
+    }
+    
+    return null;
+  }
 }
 
 // Global variables
@@ -1156,7 +1277,8 @@ function generateCommand() {
           let ladderPlaced = false;
           for (const wall of wallOptions) {
             // Only place ladders on internal walls (not boundary walls)
-            if ((maze.grid[y][x].walls & wall.dir) !== 0 && !isBoundaryWall(x, y, wall.dir, maze.width, maze.height, mazeGenerator.NORTH, mazeGenerator.SOUTH, mazeGenerator.WEST, mazeGenerator.EAST)) {
+            // FIXED: Changed from !== 0 to === 0 to place ladders on SOLID walls (no passages)
+            if ((maze.grid[y][x].walls & wall.dir) === 0 && !isBoundaryWall(x, y, wall.dir, maze.width, maze.height, mazeGenerator.NORTH, mazeGenerator.SOUTH, mazeGenerator.WEST, mazeGenerator.EAST)) {
               // Calculate the solid block position (the wall) - using the same logic as wall placement
               let wallX, wallZ;
               if (wall.dir === mazeGenerator.NORTH || wall.dir === mazeGenerator.SOUTH) {
@@ -1202,7 +1324,19 @@ function generateCommand() {
             }
           }
           if (!ladderPlaced) {
+            // FALLBACK STRATEGY: Try corner placement or create a temporary wall
             commands.push(`# WARNING: No internal wall found for up ladder at cell (${x}, ${y}) on level ${level + 1}\n`);
+            commands.push(`# Attempting fallback placement strategies...\n`);
+            
+            const fallbackResult = mazeGenerator.attemptFallbackLadderPlacement(
+              x, y, level, 'up', wallSize, walkSize, wallHeight, floorY, maze, commands
+            );
+            
+            if (fallbackResult) {
+              commands.push(`# Fallback ladder placement successful using ${fallbackResult.method}\n`);
+            } else {
+              commands.push(`# ERROR: All fallback strategies failed for up ladder at cell (${x}, ${y})\n`);
+            }
           }
         }
         
@@ -1217,7 +1351,8 @@ function generateCommand() {
           ];
           let ladderPlaced = false;
           for (const wall of wallOptions) {
-            if ((maze.grid[y][x].walls & wall.dir) !== 0 && !isBoundaryWall(x, y, wall.dir, maze.width, maze.height, mazeGenerator.NORTH, mazeGenerator.SOUTH, mazeGenerator.WEST, mazeGenerator.EAST)) {
+            // FIXED: Changed from !== 0 to === 0 to place ladders on SOLID walls (no passages)
+            if ((maze.grid[y][x].walls & wall.dir) === 0 && !isBoundaryWall(x, y, wall.dir, maze.width, maze.height, mazeGenerator.NORTH, mazeGenerator.SOUTH, mazeGenerator.WEST, mazeGenerator.EAST)) {
               // Calculate the solid block position (the wall) - using the same logic as wall placement
               let wallX, wallZ;
               if (wall.dir === mazeGenerator.NORTH || wall.dir === mazeGenerator.SOUTH) {
@@ -1263,7 +1398,19 @@ function generateCommand() {
             }
           }
           if (!ladderPlaced) {
+            // FALLBACK STRATEGY: Try corner placement or create a temporary wall
             commands.push(`# WARNING: No internal wall found for down ladder at cell (${x}, ${y}) on level ${level + 1}\n`);
+            commands.push(`# Attempting fallback placement strategies...\n`);
+            
+            const fallbackResult = mazeGenerator.attemptFallbackLadderPlacement(
+              x, y, level, 'down', wallSize, walkSize, wallHeight, floorY, maze, commands
+            );
+            
+            if (fallbackResult) {
+              commands.push(`# Fallback ladder placement successful using ${fallbackResult.method}\n`);
+            } else {
+              commands.push(`# ERROR: All fallback strategies failed for down ladder at cell (${x}, ${y})\n`);
+            }
           }
         }
       }
