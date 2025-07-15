@@ -632,120 +632,70 @@ class MultiLevelMaze {
   attemptFallbackLadderPlacement(
     x: number, y: number, level: number, direction: 'up' | 'down', 
     wallSize: number, walkSize: number, wallHeight: number, floorY: number,
-    maze: any, commands: string[]
+    _maze: any, commands: string[]
   ): { method: string, success: boolean } | null {
     
-    // Strategy 1: Corner placement (place ladder in corner of cell)
-    const cornerResult = this.attemptCornerPlacement(x, y, level, direction, wallSize, walkSize, wallHeight, floorY, commands);
-    if (cornerResult) return cornerResult;
+    // This is the only fallback, as others were unreliable.
+    // It creates a support pillar and places the ladder on it.
+
+    const centerX = x * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
+    const centerZ = y * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
+
+    // Pillar to the SOUTH of the ladder. Ladder faces NORTH (data=2)
+    const pillarX = centerX;
+    const pillarZ = centerZ + 1;
+
+    let pillarBottomY, pillarTopY, ladderBottomY, ladderTopY;
+
+    if (direction === 'up') {
+        // Ladder is in current level's space
+        pillarBottomY = floorY + 1;
+        pillarTopY = floorY + wallHeight;
+        ladderBottomY = floorY + 1;
+        ladderTopY = floorY + wallHeight;
+    } else { // direction === 'down'
+        // Ladder is in level below's space
+        pillarBottomY = floorY - wallHeight;
+        pillarTopY = floorY - 1; // up to block below floor
+        ladderBottomY = floorY - wallHeight;
+        ladderTopY = floorY; // includes air block of hole
+    }
     
-    // Strategy 2: Create temporary wall and place ladder
-    const wallResult = this.attemptWallCreation(x, y, level, direction, wallSize, walkSize, wallHeight, floorY, maze, commands);
-    if (wallResult) return wallResult;
+    // Build the pillar
+    commands.push(`# FALLBACK: Creating support pillar for ${direction} ladder at (${x},${y}) on level ${level}.\n`);
+    commands.push(`fill ~${pillarX} ~${pillarBottomY} ~${pillarZ} ~${pillarX} ~${pillarTopY} ~${pillarZ} stone\n`);
+
+    // Place the ladder
+    commands.push(`# FALLBACK: Placing ${direction} ladder at (${x},${y}) on level ${level}.\n`);
+    commands.push(`fill ~${centerX} ~${ladderBottomY} ~${centerZ} ~${centerX} ~${ladderTopY} ~${centerZ} ladder 2\n`);
     
-    // Strategy 3: Ceiling mounting (place ladder on ceiling)
-    const ceilingResult = this.attemptCeilingMounting(x, y, level, direction, wallSize, walkSize, wallHeight, floorY, commands);
-    if (ceilingResult) return ceilingResult;
-    
-    return null;
+    return { method: 'Pillar Creation', success: true };
   }
 
   attemptCornerPlacement(
-    x: number, y: number, _level: number, _direction: 'up' | 'down',
-    wallSize: number, walkSize: number, wallHeight: number, floorY: number,
-    commands: string[]
+    _x: number, _y: number, _level: number, _direction: 'up' | 'down',
+    _wallSize: number, _walkSize: number, _wallHeight: number, _floorY: number,
+    _commands: string[]
   ): { method: string, success: boolean } | null {
-    
-    // Place ladder in the corner of the cell (adjacent to a pillar)
-    const cornerX = x * (walkSize + wallSize);
-    const cornerZ = y * (walkSize + wallSize);
-    
-    // Try placing ladder adjacent to the corner pillar
-    const ladderX = cornerX + 1;
-    const ladderZ = cornerZ + 1;
-    
-    const ladderCount = wallHeight + 2;
-    const ladderStartY = floorY + 1;
-    const ladderEndY = ladderStartY + ladderCount - 1;
-    
-    let anyLadderPlaced = false;
-    for (let ladderY = ladderStartY; ladderY <= ladderEndY; ladderY++) {
-      commands.push(`setblock ~${ladderX} ~${ladderY} ~${ladderZ} ladder 2\n`);
-      anyLadderPlaced = true;
-    }
-    
-    if (anyLadderPlaced) {
-      commands.push(`# Corner ladder placed at coordinates (~${ladderX}, ~${ladderStartY}-${ladderEndY}, ~${ladderZ})\n`);
-      return { method: 'corner placement', success: true };
-    }
-    
+    // Deprecated: Unreliable and buggy.
     return null;
   }
 
   attemptWallCreation(
-    x: number, y: number, _level: number, _direction: 'up' | 'down',
-    wallSize: number, walkSize: number, wallHeight: number, floorY: number,
-    _maze: any, commands: string[]
+    _x: number, _y: number, _level: number, _direction: 'up' | 'down',
+    _wallSize: number, _walkSize: number, _wallHeight: number, _floorY: number,
+    _maze: any, _commands: string[]
   ): { method: string, success: boolean } | null {
-    
-    // Create a temporary wall and place ladder on it
-    // Choose the north wall as default
-    const wallX = x * (walkSize + wallSize) + wallSize;
-    const wallZ = y * (walkSize + wallSize);
-    
-    // Create the wall first
-    const wallTopY = floorY + wallHeight;
-    commands.push(`# Creating temporary wall for ladder placement\n`);
-    commands.push(`fill ~${wallX} ~${floorY + 1} ~${wallZ} ~${wallX + wallSize - 1} ~${wallTopY} ~${wallZ + walkSize - 1} stone\n`);
-    
-    // Place ladder on the created wall
-    const ladderX = wallX;
-    const ladderZ = wallZ - 1; // Adjacent to the wall
-    
-    const ladderCount = wallHeight + 2;
-    const ladderStartY = floorY + 1;
-    const ladderEndY = ladderStartY + ladderCount - 1;
-    
-    let anyLadderPlaced = false;
-    for (let ladderY = ladderStartY; ladderY <= ladderEndY; ladderY++) {
-      commands.push(`setblock ~${ladderX} ~${ladderY} ~${ladderZ} ladder 3\n`);
-      anyLadderPlaced = true;
-    }
-    
-    if (anyLadderPlaced) {
-      commands.push(`# Wall creation ladder placed at coordinates (~${ladderX}, ~${ladderStartY}-${ladderEndY}, ~${ladderZ})\n`);
-      return { method: 'wall creation', success: true };
-    }
-    
+    // Deprecated: Unreliable and buggy.
     return null;
   }
 
   attemptCeilingMounting(
-    x: number, y: number, _level: number, _direction: 'up' | 'down',
-    wallSize: number, walkSize: number, wallHeight: number, floorY: number,
-    commands: string[]
+    _x: number, _y: number, _level: number, _direction: 'up' | 'down',
+    _wallSize: number, _walkSize: number, _wallHeight: number, _floorY: number,
+    _commands: string[]
   ): { method: string, success: boolean } | null {
-    
-    // Place ladder hanging from the ceiling
-    const centerX = x * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
-    const centerZ = y * (walkSize + wallSize) + wallSize + Math.floor(walkSize / 2);
-    
-    const wallTopY = floorY + wallHeight;
-    const ladderCount = wallHeight + 2;
-    const ladderStartY = wallTopY - ladderCount + 1;
-    const ladderEndY = wallTopY;
-    
-    let anyLadderPlaced = false;
-    for (let ladderY = ladderStartY; ladderY <= ladderEndY; ladderY++) {
-      commands.push(`setblock ~${centerX} ~${ladderY} ~${centerZ} ladder 2\n`);
-      anyLadderPlaced = true;
-    }
-    
-    if (anyLadderPlaced) {
-      commands.push(`# Ceiling mounted ladder placed at coordinates (~${centerX}, ~${ladderStartY}-${ladderEndY}, ~${centerZ})\n`);
-      return { method: 'ceiling mounting', success: true };
-    }
-    
+    // Deprecated: Unreliable and buggy.
     return null;
   }
 }
@@ -1321,7 +1271,7 @@ function generateCommand() {
                 }
               }
               if (anyLadderPlaced) {
-                commands.push(`# Ladder placed adjacent to ${wall.dx !== 0 ? 'East/West' : 'North/South'} wall at coordinates (~${ladderX}, ~${ladderStartY}-${ladderEndY}, ~${ladderZ}), facing ${wall.facing} (up to ${ladderCount} ladders total)\n`);
+                commands.push(`# Ladder placed adjacent to ${wall.dx !== 0 ? 'East/West' : 'North/South'} wall at coordinates (~${ladderX}, ~${ladderStartY}-${ladderEndY}, ~${ladderZ}), facing ${wall.facing} (up ladder, ${ladderCount} rungs)\n`);
                 ladderPlaced = true;
                 break;
               }
@@ -1381,11 +1331,10 @@ function generateCommand() {
               ladderX = Math.max(0, Math.min(ladderX, maxX));
               ladderZ = Math.max(0, Math.min(ladderZ, maxZ));
               
-              // Ladder Count Formula: wallHeight + 2
-              // This ensures: wallHeight ladders up from floor + 1 for floor hole + 1 for next level clearance
-              const ladderCount = wallHeight + 2;
-              const ladderStartY = floorY + 1;
-              const ladderEndY = ladderStartY + ladderCount - 1;
+              // DOWN LADDER: Goes from current floor down to floor below
+              // Current floor is at floorY, floor below is at (floorY - (1 + wallHeight))
+              const ladderStartY = floorY - wallHeight; // Start at floor below
+              const ladderEndY = floorY; // End at current floor (includes hole)
               let anyLadderPlaced = false;
               for (let ladderY = ladderStartY; ladderY <= ladderEndY; ladderY++) {
                 // 3D check: only place ladder if wall exists at this Y
@@ -1395,7 +1344,8 @@ function generateCommand() {
                 }
               }
               if (anyLadderPlaced) {
-                commands.push(`# Ladder placed adjacent to ${wall.dx !== 0 ? 'East/West' : 'North/South'} wall at coordinates (~${ladderX}, ~${ladderStartY}-${ladderEndY}, ~${ladderZ}), facing ${wall.facing} (up to ${ladderCount} ladders total)\n`);
+                const ladderCount = ladderEndY - ladderStartY + 1;
+                commands.push(`# Ladder placed adjacent to ${wall.dx !== 0 ? 'East/West' : 'North/South'} wall at coordinates (~${ladderX}, ~${ladderStartY}-${ladderEndY}, ~${ladderZ}), facing ${wall.facing} (down ladder, ${ladderCount} rungs)\n`);
                 ladderPlaced = true;
                 break;
               }
