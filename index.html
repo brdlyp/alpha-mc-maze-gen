@@ -318,13 +318,13 @@
         </div>
         <div class="box">
           <div class="buttons">
-            <button class="button is-info" onclick="refreshDisplay()">Refresh</button>
-            <button class="button is-warning" onclick="regenerateMaze()">Regenerate</button>
-            <button class="button is-primary">Download function</button>
+            <button class="button is-info" id="refreshBtn">Refresh</button>
+            <button class="button is-warning" id="regenerateBtn">Regenerate</button>
+            <button class="button is-primary" id="downloadBtn">Download function</button>
           </div>
         </div>
         <div class="box">
-          <p class="help">Version: 2.0.192</p>
+          <p class="help">Version: 2.0.201</p>
         </div>
         <div class="box">
           <h4 class="title is-6">Credits</h4>
@@ -351,14 +351,14 @@
             <!-- Block legend placeholder -->
             <div id="blockLegend" style="margin-bottom: 10px;"></div>
             <div class="level-controls" style="margin-bottom: 15px;">
-              <button class="button is-small" onclick="previousLevel()" id="prevBtn">← Previous</button>
+              <button class="button is-small" id="prevBtn">← Previous</button>
               <span class="mx-3">Level <span id="currentLevel">1</span> of <span id="totalLevels">3</span></span>
-              <button class="button is-small" onclick="nextLevel()" id="nextBtn">Next →</button>
+              <button class="button is-small" id="nextBtn">Next →</button>
             </div>
             
             <div class="display-toggle">
-              <button class="button is-small active" onclick="switchDisplay('schematic')" id="schematicBtn">Schematic View</button>
-              <button class="button is-small" onclick="switchDisplay('exact')" id="exactBtn">Exact Block Layout</button>
+              <button class="button is-small active" id="schematicBtn">Schematic View</button>
+              <button class="button is-small" id="exactBtn">Exact Block Layout</button>
             </div>
             
             <div style="position: relative; display: inline-block;">

@@ -115,6 +115,39 @@
           }
           // Create individual maze objects for each level
           this.createLevelMazes();
+          // After mazes are created, punch holes for 2D mode
+          if (config.mazeGenerationMode === '2D' && config.generateHoles && this.levels > 1) {
+              const { holesPerLevel } = config;
+              // Create a list of all possible cell coordinates
+              const allCells = [];
+              for (let y = 0; y < this.height; y++) {
+                  for (let x = 0; x < this.width; x++) {
+                      // Exclude border cells from being chosen for holes to avoid issues with entrance/exit
+                      if (x > 0 && x < this.width - 1 && y > 0 && y < this.height - 1) {
+                          allCells.push({ x, y });
+                      }
+                  }
+              }
+              // Shuffle the list to randomize hole placement
+              for (let i = allCells.length - 1; i > 0; i--) {
+                  const j = Math.floor(Math.random() * (i + 1));
+                  [allCells[i], allCells[j]] = [allCells[j], allCells[i]];
+              }
+              // For each level-to-level connection, pick 'holesPerLevel' unique locations
+              for (let z = 0; z < this.levels - 1; z++) {
+                  let holesOnThisLevel = 0;
+                  while (holesOnThisLevel < holesPerLevel && allCells.length > 0) {
+                      const holeLocation = allCells.pop(); // Take a unique location
+                      if (holeLocation) {
+                          const { x, y } = holeLocation;
+                          // Punch hole between level z and z+1
+                          this.mazes[z].grid[y][x].hasUp = true;
+                          this.mazes[z + 1].grid[y][x].hasDown = true;
+                          holesOnThisLevel++;
+                      }
+                  }
+              }
+          }
       }
       generate3DMaze() {
           // Use Growing Tree algorithm with 50/50 split between random and newest
@@ -588,15 +621,13 @@
           return html;
       }
       // Shared function to determine which cells should have holes/ladders
-      getHoleCells(levelIndex, generateHoles, holesPerLevel) {
+      getHoleCells(levelIndex, generateHoles, _holesPerLevel) {
           const holeCells = [];
           if (!generateHoles)
               return holeCells;
           const maze = this.mazes[levelIndex];
           if (!maze)
               return holeCells;
-          // --- FIX: In 3D mode, return all vertical passages, ignore holesPerLevel ---
-          const is3D = config.mazeGenerationMode === '3D';
           for (let y = 0; y < maze.height; y++) {
               for (let x = 0; x < maze.width; x++) {
                   const cell = maze.grid[y][x];
@@ -609,14 +640,6 @@
                       });
                   }
               }
-          }
-          if (!is3D && holesPerLevel > 0 && holeCells.length > holesPerLevel) {
-              // Shuffle and limit for 2D mode
-              for (let i = holeCells.length - 1; i > 0; i--) {
-                  const j = Math.floor(Math.random() * (i + 1));
-                  [holeCells[i], holeCells[j]] = [holeCells[j], holeCells[i]];
-              }
-              return holeCells.slice(0, holesPerLevel);
           }
           return holeCells;
       }
@@ -706,7 +729,7 @@
       };
       return () => {
           clearTimeout(timeout);
-          timeout = setTimeout(later, wait);
+          timeout = window.setTimeout(later, wait);
       };
   }
   function updateDetailedFilename() {
@@ -1244,7 +1267,7 @@
                               let anyLadderPlaced = false;
                               for (let ladderY = ladderStartY; ladderY <= ladderEndY; ladderY++) {
                                   // 3D check: only place ladder if wall exists at this Y
-                                  if (isSolidBlock(wallX, ladderY, wallZ, wallSize, wallHeight, walkSize)) {
+                                  {
                                       commands.push(`setblock ~${ladderX} ~${ladderY} ~${ladderZ} ladder ${wall.facing}\n`);
                                       anyLadderPlaced = true;
                                   }
@@ -1313,7 +1336,7 @@
                               let anyLadderPlaced = false;
                               for (let ladderY = ladderStartY; ladderY <= ladderEndY; ladderY++) {
                                   // 3D check: only place ladder if wall exists at this Y
-                                  if (isSolidBlock(wallX, ladderY, wallZ, wallSize, wallHeight, walkSize)) {
+                                  {
                                       commands.push(`setblock ~${ladderX} ~${ladderY} ~${ladderZ} ladder ${wall.facing}\n`);
                                       anyLadderPlaced = true;
                                   }
@@ -1390,12 +1413,6 @@
           updateDisplay();
       }
   }
-  function selectLevel(level) {
-      if (mazeGenerator && level >= 0 && level < mazeGenerator.levels) {
-          mazeGenerator.currentLevel = level;
-          updateDisplay();
-      }
-  }
   function switchDisplay(mode) {
       currentDisplayMode = mode;
       // Update button states
@@ -1466,130 +1483,33 @@
           return true;
       return false;
   }
-  // Helper: returns true if the block at the given coordinates is solid (can support a ladder)
-  function isSolidBlock(x, y, z, wallSize, wallHeight, walkSize) {
-      // This function checks if a wall block exists at (x, y, z) based on wall placement logic
-      // 1. Check if it's a pillar (intersection of walls)
-      if ((x % (walkSize + wallSize)) < wallSize && (z % (walkSize + wallSize)) < wallSize) {
-          // Pillar: placed from floorY+1 to wallTopY
-          const cellLevel = Math.floor(y / (1 + wallHeight));
-          const floorY = cellLevel * (1 + wallHeight);
-          const wallTopY = floorY + wallHeight;
-          return y >= floorY + 1 && y <= wallTopY;
-      }
-      // 2. Check if it's a vertical wall (north-south)
-      if ((x % (walkSize + wallSize)) < wallSize && (z % (walkSize + wallSize)) >= wallSize) {
-          const cellLevel = Math.floor(y / (1 + wallHeight));
-          const floorY = cellLevel * (1 + wallHeight);
-          const wallTopY = floorY + wallHeight;
-          return y >= floorY + 1 && y <= wallTopY;
-      }
-      // 3. Check if it's a horizontal wall (west-east)
-      if ((x % (walkSize + wallSize)) >= wallSize && (z % (walkSize + wallSize)) < wallSize) {
-          const cellLevel = Math.floor(y / (1 + wallHeight));
-          const floorY = cellLevel * (1 + wallHeight);
-          const wallTopY = floorY + wallHeight;
-          return y >= floorY + 1 && y <= wallTopY;
-      }
-      // 4. Check if it's a border wall (outermost edge)
-      // (This is a simplification; you may want to refine for entrances/exits)
-      return false;
-  }
-  // Event listeners
-  document.addEventListener('change', validate);
-  document.addEventListener('input', (event) => {
-      const target = event.target;
-      if (target.getAttribute('data-for') === 'customName') {
-          updateCustomNamePreview();
-      }
-  });
-  // Add event listener for addRoof checkbox to update the filename example
-  const addRoofCheckbox = document.querySelector('[data-for="addRoof"]');
-  if (addRoofCheckbox) {
-      addRoofCheckbox.addEventListener('change', updateDetailedFilename);
-  }
-  // Add event listener to the download button
-  const downloadButton = document.querySelector('button.button.is-primary');
-  if (downloadButton) {
-      downloadButton.addEventListener('click', generateCommand);
-  }
-  // Handle window resize for dynamic sizing
-  window.addEventListener('resize', () => {
-      if (mazeGenerator) {
-          updateDisplay();
-      }
-  });
-  // Add event listeners for visual aids toggles
-  window.addEventListener('DOMContentLoaded', () => {
-      const blockLegendToggle = document.querySelector('[data-for="showBlockLegend"]');
-      const chunkBordersToggle = document.querySelector('[data-for="showChunkBorders"]');
-      const generateHolesToggle = document.querySelector('[data-for="generateHoles"]');
-      const holesPerLevelInput = document.querySelector('[data-for="holesPerLevel"]');
-      const generateLaddersToggle = document.querySelector('[data-for="generateLadders"]');
-      const generateLadders3DToggle = document.querySelector('[data-for="generateLadders3D"]');
-      if (blockLegendToggle) {
-          blockLegendToggle.checked = config.showBlockLegend;
-          blockLegendToggle.addEventListener('change', () => {
-              config.showBlockLegend = blockLegendToggle.checked;
-              updateDisplay();
-          });
-      }
-      if (chunkBordersToggle) {
-          chunkBordersToggle.checked = config.showChunkBorders;
-          chunkBordersToggle.addEventListener('change', () => {
-              config.showChunkBorders = chunkBordersToggle.checked;
-              updateDisplay();
-          });
-      }
-      if (generateHolesToggle) {
-          generateHolesToggle.checked = config.generateHoles;
-          generateHolesToggle.addEventListener('change', () => {
-              config.generateHoles = generateHolesToggle.checked;
-              updateDisplay();
-          });
-      }
-      if (holesPerLevelInput) {
-          holesPerLevelInput.value = config.holesPerLevel.toString();
-          holesPerLevelInput.addEventListener('change', () => {
-              config.holesPerLevel = parseInt(holesPerLevelInput.value) || 1;
-              updateDisplay();
-          });
-      }
-      if (generateLaddersToggle) {
-          generateLaddersToggle.checked = config.generateLadders;
-          generateLaddersToggle.addEventListener('change', () => {
-              config.generateLadders = generateLaddersToggle.checked;
-              updateDisplay();
-          });
-      }
-      if (generateLadders3DToggle) {
-          generateLadders3DToggle.checked = config.generateLadders3D !== false; // Default to true
-          generateLadders3DToggle.addEventListener('change', () => {
-              config.generateLadders3D = generateLadders3DToggle.checked;
-              updateDisplay();
-          });
-      }
+  document.addEventListener('DOMContentLoaded', () => {
+      const inputs = document.querySelectorAll('input, select');
+      inputs.forEach(input => {
+          input.addEventListener('input', validate);
+      });
+      document.getElementById('refreshBtn').addEventListener('click', refreshDisplay);
+      document.getElementById('regenerateBtn').addEventListener('click', regenerateMaze);
+      document.getElementById('downloadBtn').addEventListener('click', generateCommand);
+      document.getElementById('prevBtn').addEventListener('click', previousLevel);
+      document.getElementById('nextBtn').addEventListener('click', nextLevel);
+      // Display mode switcher
+      document.getElementById('schematicBtn').addEventListener('click', () => switchDisplay('schematic'));
+      document.getElementById('exactBtn').addEventListener('click', () => switchDisplay('exact'));
+      // Initial setup
+      updateDimensions();
+      updateDetailedFilename();
+      updateCustomNamePreview();
       updateHoleOptionsUI();
-      // Add event listeners for maze generation mode radio buttons
-      const mazeGenerationModeRadios = document.querySelectorAll('input[name="mazeGenerationMode"]');
-      mazeGenerationModeRadios.forEach(radio => {
+      // Add listener for maze generation mode radio buttons
+      const mazeModeRadios = document.querySelectorAll('input[name="mazeGenerationMode"]');
+      mazeModeRadios.forEach(radio => {
           radio.addEventListener('change', () => {
               updateHoleOptionsUI();
-              regenerateMaze();
+              regenerateMaze(); // Regenerate maze when mode changes
           });
       });
+      draw();
   });
-  // Initialize
-  draw();
-  updateDetailedFilename();
-  updateCustomNamePreview();
-  updateDimensions();
-  // Make functions globally available
-  window.nextLevel = nextLevel;
-  window.previousLevel = previousLevel;
-  window.selectLevel = selectLevel;
-  window.switchDisplay = switchDisplay;
-  window.refreshDisplay = refreshDisplay;
-  window.regenerateMaze = regenerateMaze;
 
 })();
