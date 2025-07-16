@@ -103,12 +103,20 @@
                   }
               }
           }
-          // Generate maze using depth-first search
-          this.generateMaze();
+          // Generate maze based on mode
+          if (config.mazeGenerationMode === '2D') {
+              for (let z = 0; z < this.levels; z++) {
+                  this.generate2DLevel(z);
+              }
+          }
+          else {
+              // Generate maze using depth-first search (original 3D method)
+              this.generate3DMaze();
+          }
           // Create individual maze objects for each level
           this.createLevelMazes();
       }
-      generateMaze() {
+      generate3DMaze() {
           // Use Growing Tree algorithm with 50/50 split between random and newest
           const cells = [];
           const visited = new Set();
@@ -164,6 +172,58 @@
               // Multi-level: force north passage for entrance on first level, south passage for exit on last level
               this.grid[0][0][0] |= this.NORTH; // Entrance: north wall of top-left cell on first level
               this.grid[this.levels - 1][this.height - 1][this.width - 1] |= this.SOUTH; // Exit: south wall of bottom-right cell on last level
+          }
+      }
+      generate2DLevel(level) {
+          // Use Growing Tree algorithm for a single level
+          const cells = [];
+          const visited = new Set();
+          const startX = 0;
+          const startY = 0;
+          cells.push({ x: startX, y: startY });
+          visited.add(`${startX},${startY}`);
+          const directions2D = [this.NORTH, this.SOUTH, this.EAST, this.WEST];
+          while (cells.length > 0) {
+              const useRandom = Math.random() < 0.5;
+              const index = useRandom ? Math.floor(Math.random() * cells.length) : cells.length - 1;
+              const current = cells[index];
+              // Get unvisited neighbors for 2D
+              const neighbors = [];
+              for (const dir of directions2D) {
+                  const nx = current.x + this.dx[dir];
+                  const ny = current.y + this.dy[dir];
+                  if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height && !visited.has(`${nx},${ny}`)) {
+                      neighbors.push({ x: nx, y: ny, dir: dir });
+                  }
+              }
+              if (neighbors.length === 0) {
+                  cells.splice(index, 1);
+              }
+              else {
+                  const nextNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
+                  const { x: nextX, y: nextY, dir: direction } = nextNeighbor;
+                  // Carve passage
+                  this.grid[level][current.y][current.x] |= direction;
+                  this.grid[level][nextY][nextX] |= this.opposite[direction];
+                  visited.add(`${nextX},${nextY}`);
+                  cells.push({ x: nextX, y: nextY });
+              }
+          }
+          // For 2D mazes, we want standard entrance/exit on each level
+          // Entrance: west wall of top-left cell
+          // Exit: east wall of bottom-right cell
+          this.grid[level][0][0] |= this.WEST;
+          this.grid[level][this.height - 1][this.width - 1] |= this.EAST;
+          // Ensure the exit cell is connected to the maze by forcing a path from a neighboring cell
+          // Connect the bottom-right cell to its west neighbor if possible
+          if (this.width > 1) {
+              this.grid[level][this.height - 1][this.width - 2] |= this.EAST; // West neighbor gets east passage
+              this.grid[level][this.height - 1][this.width - 1] |= this.WEST; // Exit cell gets west passage
+          }
+          // Also connect to north neighbor if possible
+          if (this.height > 1) {
+              this.grid[level][this.height - 2][this.width - 1] |= this.SOUTH; // North neighbor gets south passage
+              this.grid[level][this.height - 1][this.width - 1] |= this.NORTH; // Exit cell gets north passage
           }
       }
       getUnvisitedNeighbors(x, y, z, visited) {
