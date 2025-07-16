@@ -1,6 +1,6 @@
 {
   "name": "MazeCommand",
-  "version": "2.0.190",
+  "version": "2.0.191",
   "description": "Generates a maze that can be imported into your Minecraft Java world",
   "main": "index.js",
   "type": "module",
