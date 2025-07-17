@@ -112,8 +112,8 @@ export class MultiLevelMaze {
             for (let j = 0; j < numHoles; j++) {
                 const x = Math.floor(Math.random() * this.width);
                 const y = Math.floor(Math.random() * this.height);
-                this.grid[i][y][x] |= this.DOWN;
-                this.grid[i + 1][y][x] |= this.UP;
+                this.grid[i][y][x] |= this.UP;
+                this.grid[i + 1][y][x] |= this.DOWN;
             }
         }
     }
