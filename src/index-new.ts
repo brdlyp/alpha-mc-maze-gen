@@ -19,7 +19,7 @@ window.config = {
   block: 'stone',
   addRoof: false,
   generateHoles: true,
-  holesPerLevel: 1,
+  holesPerLevel: 10,
   generateLadders: true,
   showBlockLegend: true,
   showChunkBorders: false,
