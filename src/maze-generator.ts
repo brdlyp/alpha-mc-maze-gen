@@ -1,4 +1,5 @@
-import { config } from './config'
+// Config is declared globally in the main bundle
+declare const config: any;
 
 // Multi-Level Maze Generator
 export class MultiLevelMaze {
