@@ -243,19 +243,7 @@
         </div>
         <!-- Maze Options (new) -->
         <div class="box content">
-          <strong>Maze Generation Mode:</strong>
-          <div class="field" style="margin-top: 10px;">
-            <label class="radio">
-              <input type="radio" name="mazeGenerationMode" value="2D" data-for="mazeGenerationMode">
-              2D Maze Generation - Each level is a complete, independent maze
-            </label>
-          </div>
-          <div class="field">
-            <label class="radio">
-              <input type="radio" name="mazeGenerationMode" value="3D" data-for="mazeGenerationMode" checked>
-              3D Maze Generation - Connected multi-level maze (may have walled-off areas)
-            </label>
-          </div>
+          <strong>Holes and Ladders Settings:</strong>
           <div id="holeOptionsWrapper">
             <label class="checkbox" id="generateHolesLabel" style="margin-top: 10px;">
               <input type="checkbox" data-for="generateHoles" checked>
@@ -271,16 +259,6 @@
               <input type="checkbox" data-for="generateLadders" checked>
               Generate ladders for holes
             </label>
-          </div>
-          <!-- 3D Maze Ladder Control -->
-          <div id="ladder3DControl" style="display: none;">
-            <label class="checkbox" style="margin-top: 10px;">
-              <input type="checkbox" data-for="generateLadders3D" checked>
-              Generate ladders for 3D maze (all vertical passages)
-            </label>
-          </div>
-          <div id="holeOptionsNote" style="display:none; color:#888; font-size:13px; margin-top:10px;">
-            In 3D Maze mode, all vertical passages are determined by the maze algorithm for full connectivity. Manual hole selection is disabled.
           </div>
         </div>
         <!-- End Maze Options -->
@@ -413,7 +391,7 @@
               </div>
               
               <!-- Exact block layout legend -->
-              <div id="exact-legend" style="display: none;">
+              <div id="exact-legend">
                 <div class="legend-item" style="display: flex; align-items: center; gap: 5px;">
                   <div class="legend-color" style="width: 20px; height: 20px; border: 1px solid #666; background: white;"></div>
                   <span>Path</span>

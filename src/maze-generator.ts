@@ -100,141 +100,42 @@ export class MultiLevelMaze {
       }
     }
     
-    // Generate maze based on mode
-    if (config.mazeGenerationMode === '2D') {
-      for (let z = 0; z < this.levels; z++) {
-        this.generate2DLevel(z);
-      }
-    } else {
-      // Generate maze using depth-first search (original 3D method)
-      this.generate3DMaze();
+    // Always generate 2D mazes
+    for (let i = 0; i < this.levels; i++) {
+        this.generate2DLevel(i);
+    }
+    
+    // Generate holes before creating the level mazes
+    if (config.generateHoles && this.levels > 1) {
+        for (let i = 0; i < this.levels - 1; i++) {
+            const numHoles = config.holesPerLevel;
+            for (let j = 0; j < numHoles; j++) {
+                const x = Math.floor(Math.random() * this.width);
+                const y = Math.floor(Math.random() * this.height);
+                this.grid[i][y][x] |= this.DOWN;
+                this.grid[i + 1][y][x] |= this.UP;
+            }
+        }
     }
     
     // Create individual maze objects for each level
     this.createLevelMazes();
-
-    // After mazes are created, punch holes for 2D mode
-    if (config.mazeGenerationMode === '2D' && config.generateHoles && this.levels > 1) {
-      const { holesPerLevel } = config;
-
-      // Create a list of all possible cell coordinates
-      const allCells: Array<{x: number, y: number}> = [];
-      for (let y = 0; y < this.height; y++) {
-        for (let x = 0; x < this.width; x++) {
-          // Exclude border cells from being chosen for holes to avoid issues with entrance/exit
-          if (x > 0 && x < this.width - 1 && y > 0 && y < this.height - 1) {
-            allCells.push({ x, y });
-          }
-        }
-      }
-
-      // Shuffle the list to randomize hole placement
-      for (let i = allCells.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [allCells[i], allCells[j]] = [allCells[j], allCells[i]];
-      }
-
-      // For each level-to-level connection, pick 'holesPerLevel' unique locations
-      for (let z = 0; z < this.levels - 1; z++) {
-        let holesOnThisLevel = 0;
-        while (holesOnThisLevel < holesPerLevel && allCells.length > 0) {
-          const holeLocation = allCells.pop(); // Take a unique location
-          if (holeLocation) {
-            const { x, y } = holeLocation;
-            // Punch hole between level z and z+1
-            this.mazes[z].grid[y][x].hasUp = true;
-            this.mazes[z+1].grid[y][x].hasDown = true;
-            holesOnThisLevel++;
-          }
-        }
-      }
-    }
-  }
-  
-  generate3DMaze() {
-    // Use Growing Tree algorithm with 50/50 split between random and newest
-    const cells: Array<{x: number, y: number, z: number}> = [];
-    const visited = new Set<string>();
-    
-    // Start from a consistent cell to ensure connectivity
-    // For single level mazes, start from the entrance cell (top-left)
-    // For multi-level mazes, start from the entrance cell (top-left of first level)
-    const startX = 0;
-    const startY = 0;
-    const startZ = 0;
-    
-    cells.push({x: startX, y: startY, z: startZ});
-    visited.add(`${startX},${startY},${startZ}`);
-    
-    while (cells.length > 0) {
-      // Choose cell selection method: 50% random, 50% newest
-      const useRandom = Math.random() < 0.5;
-      const index = useRandom ? Math.floor(Math.random() * cells.length) : cells.length - 1;
-      
-      const current = cells[index];
-      const neighbors = this.getUnvisitedNeighbors(current.x, current.y, current.z, visited);
-      
-      if (neighbors.length === 0) {
-        // No unvisited neighbors, remove this cell
-        cells.splice(index, 1);
-      } else {
-        // Choose a random unvisited neighbor
-        const next = neighbors[Math.floor(Math.random() * neighbors.length)];
-        const direction = this.getDirection(current, next);
-        
-        // Carve passage
-        this.grid[current.z][current.y][current.x] |= direction;
-        this.grid[next.z][next.y][next.x] |= this.opposite[direction];
-        
-        visited.add(`${next.x},${next.y},${next.z}`);
-        cells.push(next);
-      }
-    }
-    
-    // Ensure entrance and exit - force passages to guarantee connectivity
-    // For single level mazes: entrance on west wall, exit on east wall
-    // For multi-level mazes: entrance on north wall of first level, exit on south wall of last level
-    if (this.levels === 1) {
-      // Single level: force west passage for entrance (top-left cell), east passage for exit (bottom-right cell)
-      this.grid[0][0][0] |= this.WEST;  // Entrance: west wall of top-left cell
-      this.grid[0][this.height - 1][this.width - 1] |= this.EAST;  // Exit: east wall of bottom-right cell
-      
-      // Ensure the exit cell is connected to the maze by forcing a path from a neighboring cell
-      // Connect the bottom-right cell to its west neighbor if possible
-      if (this.width > 1) {
-        this.grid[0][this.height - 1][this.width - 2] |= this.EAST;  // West neighbor gets east passage
-        this.grid[0][this.height - 1][this.width - 1] |= this.WEST;  // Exit cell gets west passage
-      }
-      // Also connect to north neighbor if possible
-      if (this.height > 1) {
-        this.grid[0][this.height - 2][this.width - 1] |= this.SOUTH;  // North neighbor gets south passage
-        this.grid[0][this.height - 1][this.width - 1] |= this.NORTH;  // Exit cell gets north passage
-      }
-    } else {
-      // Multi-level: force north passage for entrance on first level, south passage for exit on last level
-      this.grid[0][0][0] |= this.NORTH;  // Entrance: north wall of top-left cell on first level
-      this.grid[this.levels - 1][this.height - 1][this.width - 1] |= this.SOUTH;  // Exit: south wall of bottom-right cell on last level
-    }
   }
   
   generate2DLevel(level: number) {
-    // Use Growing Tree algorithm for a single level
-    const cells: Array<{x: number, y: number}> = [];
+    const stack: { x: number, y: number }[] = [];
     const visited = new Set<string>();
 
     const startX = 0;
     const startY = 0;
 
-    cells.push({x: startX, y: startY});
+    stack.push({x: startX, y: startY});
     visited.add(`${startX},${startY}`);
 
     const directions2D = [this.NORTH, this.SOUTH, this.EAST, this.WEST];
 
-    while (cells.length > 0) {
-      const useRandom = Math.random() < 0.5;
-      const index = useRandom ? Math.floor(Math.random() * cells.length) : cells.length - 1;
-
-      const current = cells[index];
+    while (stack.length > 0) {
+      const current = stack[stack.length - 1];
 
       // Get unvisited neighbors for 2D
       const neighbors = [];
@@ -248,7 +149,7 @@ export class MultiLevelMaze {
       }
 
       if (neighbors.length === 0) {
-        cells.splice(index, 1);
+        stack.pop();
       } else {
         const nextNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
         const { x: nextX, y: nextY, dir: direction } = nextNeighbor;
@@ -258,7 +159,7 @@ export class MultiLevelMaze {
         this.grid[level][nextY][nextX] |= this.opposite[direction];
 
         visited.add(`${nextX},${nextY}`);
-        cells.push({x: nextX, y: nextY});
+        stack.push({x: nextX, y: nextY});
       }
     }
 
@@ -279,41 +180,6 @@ export class MultiLevelMaze {
       this.grid[level][this.height - 2][this.width - 1] |= this.SOUTH;  // North neighbor gets south passage
       this.grid[level][this.height - 1][this.width - 1] |= this.NORTH;  // Exit cell gets north passage
     }
-  }
-  
-  getUnvisitedNeighbors(x: number, y: number, z: number, visited: Set<string>) {
-    const neighbors = [];
-    
-    for (const dir of this.directions) {
-      const nx = x + this.dx[dir];
-      const ny = y + this.dy[dir];
-      const nz = z + this.dz[dir];
-      
-      if (this.isValidCell(nx, ny, nz) && !visited.has(`${nx},${ny},${nz}`)) {
-        neighbors.push({x: nx, y: ny, z: nz});
-      }
-    }
-    
-    return neighbors;
-  }
-  
-  getDirection(from: {x: number, y: number, z: number}, to: {x: number, y: number, z: number}) {
-    const dx = to.x - from.x;
-    const dy = to.y - from.y;
-    const dz = to.z - from.z;
-    
-    if (dx === 1) return this.EAST;
-    if (dx === -1) return this.WEST;
-    if (dy === 1) return this.SOUTH;
-    if (dy === -1) return this.NORTH;
-    if (dz === 1) return this.UP;
-    if (dz === -1) return this.DOWN;
-    
-    return 0;
-  }
-  
-  isValidCell(x: number, y: number, z: number) {
-    return x >= 0 && x < this.width && y >= 0 && y < this.height && z >= 0 && z < this.levels;
   }
   
   createLevelMazes() {

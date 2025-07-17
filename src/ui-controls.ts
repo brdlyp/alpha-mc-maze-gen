@@ -1,8 +1,7 @@
 // Config is declared globally in the main bundle
 declare const config: any;
 import { MultiLevelMaze } from './maze-generator'
-import { DisplayManager, switchDisplay } from './display-manager'
-import { debounce, validate, updateCustomNamePreview, updateDetailedFilename } from './utils'
+import { DisplayManager, switchDisplay, currentDisplayMode } from './display-manager'
 
 // UI Controls - handles user interactions and control logic
 export class UIControls {
@@ -13,7 +12,7 @@ export class UIControls {
 
   constructor(displayManager: DisplayManager) {
     this.displayManager = displayManager;
-    this.drawDelay = debounce(() => this.draw(), 500);
+    this.drawDelay = this.debounce(() => this.draw(), 500);
   }
 
   setMazeGenerator(generator: MultiLevelMaze | null) {
@@ -35,14 +34,14 @@ export class UIControls {
     this.setMazeGenerator(new MultiLevelMaze(width, height, levels));
     this.mazeGenerator!.generate();
     
-    this.updateDisplay();
+    this.updateDisplay(currentDisplayMode);
   }
 
   // Display refresh functions
   refreshDisplay() {
     // Only update the visual display without regenerating the maze
     if (this.mazeGenerator) {
-      this.updateDisplay();
+      this.updateDisplay(currentDisplayMode);
     }
   }
 
@@ -51,32 +50,23 @@ export class UIControls {
     this.draw();
   }
 
-  updateDisplay() {
+  updateDisplay(mode: 'schematic' | 'exact') {
     if (!this.mazeGenerator) return;
     
     const mazeDisplay = document.getElementById('mazeDisplay');
     if (!mazeDisplay) return;
     
     const currentLevel = this.mazeGenerator.currentLevel;
-    const { showBlockLegend } = config;
     
     // Update level display based on current display mode
     let html = '';
-    if (currentDisplayMode === 'schematic') {
+    if (mode === 'schematic') {
       html = this.displayManager.renderLevel(currentLevel);
     } else {
       html = this.displayManager.renderExactBlockLayout(currentLevel);
     }
     
     mazeDisplay.innerHTML = html;
-    
-    // Update block legend
-    if (showBlockLegend) {
-      const blockLegend = document.getElementById('blockLegend');
-      if (blockLegend) {
-        blockLegend.innerHTML = this.displayManager.renderBlockLegend();
-      }
-    }
     
     // Update tree view
     this.updateTreeView();
@@ -86,8 +76,8 @@ export class UIControls {
     this.updateChunkOverlay();
     
     // Update filename preview
-    updateDetailedFilename();
-    updateCustomNamePreview();
+    this.updateDetailedFilename();
+    this.updateCustomNamePreview();
   }
 
   updateTreeView() {
@@ -147,15 +137,81 @@ export class UIControls {
   nextLevel() {
     if (this.mazeGenerator && this.mazeGenerator.currentLevel < this.mazeGenerator.levels - 1) {
       this.mazeGenerator.currentLevel++;
-      this.updateDisplay();
+      this.updateDisplay(currentDisplayMode);
     }
   }
 
   previousLevel() {
     if (this.mazeGenerator && this.mazeGenerator.currentLevel > 0) {
       this.mazeGenerator.currentLevel--;
-      this.updateDisplay();
+      this.updateDisplay(currentDisplayMode);
     }
+  }
+
+  // Debounce function to limit rapid function calls
+  private debounce(func: () => void, wait: number) {
+    let timeout: number | undefined;
+    return () => {
+      const later = () => {
+        clearTimeout(timeout);
+        func();
+      };
+      clearTimeout(timeout);
+      timeout = window.setTimeout(later, wait);
+    };
+  }
+
+  // Update detailed filename based on current config
+  private updateDetailedFilename() {
+    const { width, height, levels, wallSize, wallHeight, walkSize, block, addRoof } = config;
+    let suffix = '';
+    if (addRoof) suffix = '-wceiling';
+    const filename = `${width}x${height}x${levels}maze-ww${wallSize}wh${wallHeight}pw${walkSize}wb${block}${suffix}.mcfunction`;
+    
+    const customNamePreview = document.getElementById('customNamePreview');
+    const customNameText = document.getElementById('customNameText');
+    if (customNamePreview && customNameText) {
+      (customNamePreview as HTMLElement).textContent = filename;
+      (customNameText as HTMLInputElement).placeholder = filename;
+    }
+  }
+
+  // Update custom name preview
+  private updateCustomNamePreview() {
+    const customNameInput = document.querySelector('input[data-for="customMazeName"]') as HTMLInputElement;
+    const customNamePreview = document.getElementById('customNamePreview');
+    
+    if (customNameInput && customNamePreview) {
+      const customName = customNameInput.value.trim();
+      if (customName) {
+        customNamePreview.textContent = customName.endsWith('.mcfunction') ? customName : `${customName}.mcfunction`;
+      } else {
+        this.updateDetailedFilename(); // Fallback to detailed filename
+      }
+    }
+  }
+
+  // Input validation function
+  private validate() {
+    // Get all inputs and validate them
+    const inputs = document.querySelectorAll('input, select') as NodeListOf<HTMLInputElement | HTMLSelectElement>;
+    inputs.forEach(input => {
+      const dataFor = input.getAttribute('data-for');
+      if (dataFor && dataFor in config) {
+        if (input.type === 'checkbox') {
+          (config as any)[dataFor] = (input as HTMLInputElement).checked;
+        } else if (input.type === 'number' || input.tagName === 'SELECT') {
+          const value = input.type === 'number' ? parseInt(input.value) : input.value;
+          (config as any)[dataFor] = value;
+        } else {
+          (config as any)[dataFor] = input.value;
+        }
+      }
+    });
+    
+    // Update filename preview when config changes
+    this.updateDetailedFilename();
+    this.updateCustomNamePreview();
   }
 
   // Configuration update handler
@@ -179,23 +235,10 @@ export class UIControls {
 
   // UI state management
   updateHoleOptionsUI() {
-    const is3D = config.mazeGenerationMode === '3D';
-    const holeOptionsWrapper = document.getElementById('holeOptionsWrapper');
-    const holeOptionsNote = document.getElementById('holeOptionsNote');
-    const generateHolesLabel = document.getElementById('generateHolesLabel');
+    const generateHoles = (document.querySelector('[data-for="generateHoles"]') as HTMLInputElement)?.checked;
     const holesPerLevelField = document.getElementById('holesPerLevelField');
-    const ladder3DControl = document.getElementById('ladder3DControl');
-    
-    if (holeOptionsWrapper && holeOptionsNote && generateHolesLabel && holesPerLevelField && ladder3DControl) {
-      if (is3D) {
-        holeOptionsWrapper.style.display = 'none';
-        holeOptionsNote.style.display = 'block';
-        ladder3DControl.style.display = 'block';
-      } else {
-        holeOptionsWrapper.style.display = '';
-        holeOptionsNote.style.display = 'none';
-        ladder3DControl.style.display = 'none';
-      }
+    if(holesPerLevelField) {
+      holesPerLevelField.style.display = generateHoles ? 'block' : 'none';
     }
   }
 
@@ -205,7 +248,7 @@ export class UIControls {
     const inputs = document.querySelectorAll('input, select');
     inputs.forEach(input => {
       input.addEventListener('input', () => {
-        validate();
+        this.validate();
         this.onConfigChange();
       });
     });
@@ -220,26 +263,26 @@ export class UIControls {
     // Display mode switcher
     document.getElementById('schematicBtn')?.addEventListener('click', () => {
       switchDisplay('schematic');
-      this.updateDisplay();
+      this.updateDisplay('schematic');
     });
     document.getElementById('exactBtn')?.addEventListener('click', () => {
       switchDisplay('exact');
-      this.updateDisplay();
+      this.updateDisplay('exact');
     });
 
     // Initial setup
-    updateDetailedFilename();
-    updateCustomNamePreview();
+    this.updateDetailedFilename();
+    this.updateCustomNamePreview();
     this.updateHoleOptionsUI();
     
     // Add listener for maze generation mode radio buttons
-    const mazeModeRadios = document.querySelectorAll('input[name="mazeGenerationMode"]');
-    mazeModeRadios.forEach(radio => {
-      radio.addEventListener('change', () => {
+    const generateHolesCheckbox = document.querySelector('input[data-for="generateHoles"]');
+    if (generateHolesCheckbox) {
+      generateHolesCheckbox.addEventListener('change', () => {
         this.updateHoleOptionsUI();
-        this.regenerateMaze(); // Regenerate maze when mode changes
+        this.regenerateMaze();
       });
-    });
+    }
     
     this.draw();
   }
@@ -249,6 +292,3 @@ export class UIControls {
     console.log('Generate command called - this will be implemented in file-generator module');
   }
 }
-
-// Global current display mode
-export let currentDisplayMode: 'schematic' | 'exact' = 'schematic';
