@@ -107,13 +107,30 @@ export class MultiLevelMaze {
     
     // Generate holes before creating the level mazes
     if (config.generateHoles && this.levels > 1) {
+        const usedHoleCoordinates = new Set<string>();
+
         for (let i = 0; i < this.levels - 1; i++) {
             const numHoles = config.holesPerLevel;
-            for (let j = 0; j < numHoles; j++) {
+            let holesPlaced = 0;
+            let attempts = 0;
+            const maxAttempts = (this.width * this.height) * 2; // Safeguard against infinite loops
+
+            while (holesPlaced < numHoles && attempts < maxAttempts) {
                 const x = Math.floor(Math.random() * this.width);
                 const y = Math.floor(Math.random() * this.height);
-                this.grid[i][y][x] |= this.UP;
-                this.grid[i + 1][y][x] |= this.DOWN;
+                const coord = `${x},${y}`;
+                
+                if (!usedHoleCoordinates.has(coord)) {
+                    usedHoleCoordinates.add(coord);
+                    this.grid[i][y][x] |= this.UP;
+                    this.grid[i + 1][y][x] |= this.DOWN;
+                    holesPlaced++;
+                }
+                attempts++;
+            }
+
+            if (holesPlaced < numHoles) {
+                console.warn(`Could only place ${holesPlaced} of ${numHoles} holes for level ${i + 1}. The maze may have fewer holes than requested.`);
             }
         }
     }
