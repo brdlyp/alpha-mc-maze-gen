@@ -30,7 +30,7 @@ function injectVersion() {
 }
 
 export default {
-  input: 'src/index.ts',
+  input: 'src/index-new.ts',
   output: {
     file: 'bundle.js',
     format: 'iife'
