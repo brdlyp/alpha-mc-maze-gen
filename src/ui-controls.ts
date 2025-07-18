@@ -114,23 +114,84 @@ export class UIControls {
     
     if (!showChunkBorders || !this.mazeGenerator) return;
     
-    // Create new chunk overlay (placeholder implementation)
     const mazeDisplay = document.getElementById('mazeDisplay');
-    if (mazeDisplay) {
-      const overlay = document.createElement('div');
-      overlay.id = 'chunkOverlay';
-      overlay.style.position = 'absolute';
-      overlay.style.top = '0';
-      overlay.style.left = '0';
-      overlay.style.pointerEvents = 'none';
-      overlay.style.border = '2px dashed #ff0000';
-      overlay.style.zIndex = '10';
-      
-      // Simple chunk border visualization (16x16 grid)
-      // This is a simplified implementation
-      mazeDisplay.style.position = 'relative';
-      mazeDisplay.appendChild(overlay);
+    if (!mazeDisplay) return;
+    
+    // Calculate maze dimensions in blocks
+    const maze = this.mazeGenerator.mazes[this.mazeGenerator.currentLevel];
+    if (!maze) return;
+    
+    const { wallSize, walkSize } = config;
+    const totalWidth = maze.width * walkSize + (maze.width + 1) * wallSize;
+    const totalHeight = maze.height * walkSize + (maze.height + 1) * wallSize;
+    
+    // Get the size of maze cells in pixels
+    const firstMazeCell = mazeDisplay.querySelector('.maze-cell, .exact-maze-cell') as HTMLElement;
+    if (!firstMazeCell) return;
+    
+    const cellRect = firstMazeCell.getBoundingClientRect();
+    const cellSize = cellRect.width; // Assuming square cells
+    
+    // Create chunk overlay container
+    const overlay = document.createElement('div');
+    overlay.id = 'chunkOverlay';
+    overlay.style.position = 'absolute';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.pointerEvents = 'none';
+    overlay.style.zIndex = '10';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    
+    // Draw vertical chunk lines (every 16 blocks)
+    for (let x = 16; x < totalWidth; x += 16) {
+      const line = document.createElement('div');
+      line.style.position = 'absolute';
+      line.style.left = `${x * cellSize}px`;
+      line.style.top = '0';
+      line.style.width = '2px';
+      line.style.height = '100%';
+      line.style.background = '#ff6b35';
+      line.style.border = '1px dashed #ff6b35';
+      line.style.opacity = '0.7';
+      overlay.appendChild(line);
     }
+    
+    // Draw horizontal chunk lines (every 16 blocks)
+    for (let z = 16; z < totalHeight; z += 16) {
+      const line = document.createElement('div');
+      line.style.position = 'absolute';
+      line.style.left = '0';
+      line.style.top = `${z * cellSize}px`;
+      line.style.width = '100%';
+      line.style.height = '2px';
+      line.style.background = '#ff6b35';
+      line.style.border = '1px dashed #ff6b35';
+      line.style.opacity = '0.7';
+      overlay.appendChild(line);
+    }
+    
+    // Add chunk coordinate labels at intersections
+    for (let chunkX = 0; chunkX * 16 < totalWidth; chunkX++) {
+      for (let chunkZ = 0; chunkZ * 16 < totalHeight; chunkZ++) {
+        if (chunkX === 0 && chunkZ === 0) continue; // Skip origin
+        
+        const label = document.createElement('div');
+        label.style.position = 'absolute';
+        label.style.left = `${chunkX * 16 * cellSize + 2}px`;
+        label.style.top = `${chunkZ * 16 * cellSize + 2}px`;
+        label.style.fontSize = '10px';
+        label.style.color = '#ff6b35';
+        label.style.fontWeight = 'bold';
+        label.style.textShadow = '1px 1px 2px rgba(0,0,0,0.7)';
+        label.style.pointerEvents = 'none';
+        label.textContent = `${chunkX},${chunkZ}`;
+        overlay.appendChild(label);
+      }
+    }
+    
+    mazeDisplay.style.position = 'relative';
+    mazeDisplay.appendChild(overlay);
   }
 
   // Navigation functions
