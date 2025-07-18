@@ -24,7 +24,7 @@ Use at your own risk, tweak as you like, and most importantly: have fun with it.
 - **Automated Test Suite**: Validate ladder placement logic across many scenarios
 - **Minecraft Function Export**: Generate `.mcfunction` files ready for import
 - **Growing Tree Algorithm**: Uses an advanced maze generation algorithm for optimal path creation
-- **Responsive Design**: Modern UI built with Bulma CSS framework
+- **Responsive Design**: Modern UI built with Bootstrap 5 CSS framework
 
 ## 🚀 Live Demo
 
@@ -217,7 +217,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Technologies Used
 - **TypeScript** - For type-safe JavaScript development
 - **Rollup** - For module bundling and build process
-- **Bulma CSS** - For modern, responsive UI components
+- **Bootstrap 5** - For modern, responsive UI components
 - **HTML5 Canvas** - For maze visualization
 
 ## 📚 Additional Resources

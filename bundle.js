@@ -385,9 +385,25 @@
       const exactBtn = document.getElementById('exactBtn');
       if (schematicBtn) {
           schematicBtn.classList.toggle('active', mode === 'schematic');
+          if (mode === 'schematic') {
+              schematicBtn.classList.remove('btn-outline-primary');
+              schematicBtn.classList.add('btn-primary');
+          }
+          else {
+              schematicBtn.classList.remove('btn-primary');
+              schematicBtn.classList.add('btn-outline-primary');
+          }
       }
       if (exactBtn) {
           exactBtn.classList.toggle('active', mode === 'exact');
+          if (mode === 'exact') {
+              exactBtn.classList.remove('btn-outline-primary');
+              exactBtn.classList.add('btn-primary');
+          }
+          else {
+              exactBtn.classList.remove('btn-primary');
+              exactBtn.classList.add('btn-outline-primary');
+          }
       }
       // Update legend visibility
       const schematicLegend = document.getElementById('schematic-legend');
