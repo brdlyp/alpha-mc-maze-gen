@@ -64,12 +64,12 @@ Try the maze generator online: [Minecraft Maze Generator](https://brdlyp.github.
 
 2. **Install dependencies**:
    ```bash
-   npm install
+   pnpm install
    ```
 
 3. **Build the project**:
    ```bash
-   npm run build
+   pnpm run build
    ```
 
 4. **Open in browser**:
