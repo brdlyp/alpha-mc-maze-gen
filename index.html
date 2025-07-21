@@ -419,8 +419,14 @@
   <div class="sidebar-container" id="sidebarContainer">
     <!-- Version -->
     <div class="mb-3">
-      <small class="text-muted">Version: 2.0.247</small>
+      <small class="text-muted">Version: 2.0.248</small>
     </div>
+    
+    <!-- Show/Hide All Toggle -->
+    <div class="mb-3">
+      <button class="btn btn-outline-primary btn-sm w-100" id="toggleAllBtn">Show All</button>
+    </div>
+    
     <!-- Maze Generation Buttons -->
     <div class="card mb-3">
       <div class="card-header" data-bs-toggle="collapse" data-bs-target="#collapseGenBtns" aria-expanded="true" style="cursor:pointer;">
@@ -472,10 +478,10 @@
     </div>
     <!-- Wall & Path Settings -->
     <div class="card mb-3">
-      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#collapseWallPath" aria-expanded="true" style="cursor:pointer;">
+      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#collapseWallPath" aria-expanded="false" style="cursor:pointer;">
         Wall & Path Settings
       </div>
-      <div id="collapseWallPath" class="collapse show">
+      <div id="collapseWallPath" class="collapse">
         <div class="card-body">
           <div class="mb-3">
             <label class="form-label"><strong>Wall Width:</strong></label>
@@ -516,10 +522,10 @@
     </div>
     <!-- Holes & Ladders Settings -->
     <div class="card mb-3">
-      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#collapseHolesLadders" aria-expanded="true" style="cursor:pointer;">
+      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#collapseHolesLadders" aria-expanded="false" style="cursor:pointer;">
         Holes & Ladders Settings
       </div>
-      <div id="collapseHolesLadders" class="collapse show">
+      <div id="collapseHolesLadders" class="collapse">
         <div class="card-body">
           <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" data-for="generateHoles" checked id="generateHoles">
@@ -579,10 +585,10 @@
     </div>
     <!-- Visual Aids -->
     <div class="card mb-3">
-      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#collapseVisualAids" aria-expanded="true" style="cursor:pointer;">
+      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#collapseVisualAids" aria-expanded="false" style="cursor:pointer;">
         Visual Aids
       </div>
-      <div id="collapseVisualAids" class="collapse show">
+      <div id="collapseVisualAids" class="collapse">
         <div class="card-body">
           <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" data-for="showBlockLegend" checked id="showBlockLegend">
@@ -908,6 +914,60 @@
           // Show confirmation dialog
           if (confirm('Are you sure you want to reset all settings to default values? This will refresh the page and all changes will be lost.')) {
             location.reload();
+          }
+        });
+      }
+      
+      // --- Show/Hide All Toggle Button ---
+      const toggleAllBtn = document.getElementById('toggleAllBtn');
+      if (toggleAllBtn) {
+        let allExpanded = false; // Track current state
+        
+        // Define which cards to always keep visible when hiding
+        const alwaysVisible = ['collapseFileExport', 'collapseCredits'];
+        
+        // Define all collapsible cards
+        const allCards = [
+          'collapseGenBtns',
+          'collapseDimensions', 
+          'collapseWallPath',
+          'collapseHolesLadders',
+          'collapseFileExport',
+          'collapseVisualAids',
+          'collapseCredits'
+        ];
+        
+        toggleAllBtn.addEventListener('click', function() {
+          if (allExpanded) {
+            // Hide All - collapse all except alwaysVisible
+            allCards.forEach(cardId => {
+              if (!alwaysVisible.includes(cardId)) {
+                const collapse = document.getElementById(cardId);
+                const header = document.querySelector(`[data-bs-target="#${cardId}"]`);
+                if (collapse && header) {
+                  // Use Bootstrap's collapse API to hide
+                  const bsCollapse = new bootstrap.Collapse(collapse, { toggle: false });
+                  bsCollapse.hide();
+                  header.setAttribute('aria-expanded', 'false');
+                }
+              }
+            });
+            toggleAllBtn.textContent = 'Show All';
+            allExpanded = false;
+          } else {
+            // Show All - expand all cards
+            allCards.forEach(cardId => {
+              const collapse = document.getElementById(cardId);
+              const header = document.querySelector(`[data-bs-target="#${cardId}"]`);
+              if (collapse && header) {
+                // Use Bootstrap's collapse API to show
+                const bsCollapse = new bootstrap.Collapse(collapse, { toggle: false });
+                bsCollapse.show();
+                header.setAttribute('aria-expanded', 'true');
+              }
+            });
+            toggleAllBtn.textContent = 'Hide All';
+            allExpanded = true;
           }
         });
       }
