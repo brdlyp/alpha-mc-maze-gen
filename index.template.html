@@ -163,6 +163,85 @@
       min-height: 600px;
     }
     
+    /* Hide default number input spinners */
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    
+    /* For Firefox */
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+    
+    /* Custom number input styling */
+    .number-input-group {
+      display: flex;
+      width: 100%;
+    }
+    
+    .number-input-group input {
+      text-align: center;
+      border-left: 0;
+      border-right: 0;
+      z-index: 2;
+      position: relative;
+    }
+    
+    .number-input-group input:focus {
+      z-index: 3;
+      box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+      border-color: #86b7fe;
+    }
+    
+    .number-btn {
+      width: 45px;
+      height: 38px;
+      padding: 0;
+      font-size: 16px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #ced4da;
+      background: #f8f9fa;
+      color: #495057;
+      cursor: pointer;
+      transition: all 0.15s ease-in-out;
+      user-select: none;
+    }
+    
+    .number-btn:hover {
+      background: #e9ecef;
+      border-color: #adb5bd;
+      color: #212529;
+    }
+    
+    .number-btn:active {
+      background: #dee2e6;
+      border-color: #6c757d;
+      transform: translateY(1px);
+    }
+    
+    .number-btn.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    
+    .number-btn-minus {
+      border-top-left-radius: 0.375rem;
+      border-bottom-left-radius: 0.375rem;
+      border-right: 0;
+    }
+    
+    .number-btn-plus {
+      border-top-right-radius: 0.375rem;
+      border-bottom-right-radius: 0.375rem;
+      border-left: 0;
+    }
+    
     .maze-row {
       display: flex;
       height: auto;
@@ -352,6 +431,7 @@
           <div class="d-grid gap-2">
             <button class="btn btn-info" id="refreshBtn">Refresh Maze View</button>
             <button class="btn btn-warning" id="regenerateBtn">Regenerate Maze</button>
+            <button class="btn btn-danger" id="resetBtn">Reset to Default</button>
           </div>
         </div>
       </div>
@@ -365,15 +445,27 @@
         <div class="card-body">
           <div class="mb-3">
             <label class="form-label"><strong>Width (in paths):</strong></label>
-            <input class="form-control" step="5" min="10" max="100" value="20" type="number" data-for="width">
+            <div class="number-input-group">
+              <div class="number-btn number-btn-minus" onclick="decrementNumber('width')">−</div>
+              <input class="form-control" step="5" min="10" max="100" value="20" type="number" data-for="width">
+              <div class="number-btn number-btn-plus" onclick="incrementNumber('width')">+</div>
+            </div>
           </div>
           <div class="mb-3">
             <label class="form-label"><strong>Height (in paths):</strong></label>
-            <input class="form-control" step="5" min="10" max="100" value="20" type="number" data-for="height">
+            <div class="number-input-group">
+              <div class="number-btn number-btn-minus" onclick="decrementNumber('height')">−</div>
+              <input class="form-control" step="5" min="10" max="100" value="20" type="number" data-for="height">
+              <div class="number-btn number-btn-plus" onclick="incrementNumber('height')">+</div>
+            </div>
           </div>
           <div class="mb-3">
             <label class="form-label"><strong>Levels:</strong></label>
-            <input class="form-control" min="1" max="20" value="3" type="number" data-for="levels">
+            <div class="number-input-group">
+              <div class="number-btn number-btn-minus" onclick="decrementNumber('levels')">−</div>
+              <input class="form-control" min="1" max="20" value="3" type="number" data-for="levels">
+              <div class="number-btn number-btn-plus" onclick="incrementNumber('levels')">+</div>
+            </div>
           </div>
         </div>
       </div>
@@ -387,15 +479,27 @@
         <div class="card-body">
           <div class="mb-3">
             <label class="form-label"><strong>Wall Width:</strong></label>
-            <input class="form-control" min="1" max="5" value="1" type="number" data-for="wallSize">
+            <div class="number-input-group">
+              <div class="number-btn number-btn-minus" onclick="decrementNumber('wallSize')">−</div>
+              <input class="form-control" min="1" max="5" value="1" type="number" data-for="wallSize">
+              <div class="number-btn number-btn-plus" onclick="incrementNumber('wallSize')">+</div>
+            </div>
           </div>
           <div class="mb-3">
             <label class="form-label"><strong>Wall Height:</strong></label>
-            <input class="form-control" min="1" max="50" value="3" type="number" data-for="wallHeight">
+            <div class="number-input-group">
+              <div class="number-btn number-btn-minus" onclick="decrementNumber('wallHeight')">−</div>
+              <input class="form-control" min="1" max="50" value="3" type="number" data-for="wallHeight">
+              <div class="number-btn number-btn-plus" onclick="incrementNumber('wallHeight')">+</div>
+            </div>
           </div>
           <div class="mb-3">
             <label class="form-label"><strong>Path Width:</strong></label>
-            <input class="form-control" min="1" max="5" value="1" type="number" data-for="walkSize">
+            <div class="number-input-group">
+              <div class="number-btn number-btn-minus" onclick="decrementNumber('walkSize')">−</div>
+              <input class="form-control" min="1" max="5" value="1" type="number" data-for="walkSize">
+              <div class="number-btn number-btn-plus" onclick="incrementNumber('walkSize')">+</div>
+            </div>
           </div>
           <div class="mb-3">
             <label class="form-label"><strong>Wall Block:</strong></label>
@@ -425,7 +529,11 @@
           </div>
           <div class="mb-3" id="holesPerLevelField">
             <label class="form-label">Number of holes per level</label>
-            <input class="form-control" type="number" min="1" max="100" value="1" data-for="holesPerLevel">
+            <div class="number-input-group">
+              <div class="number-btn number-btn-minus" onclick="decrementNumber('holesPerLevel')">−</div>
+              <input class="form-control" type="number" min="1" max="100" value="1" data-for="holesPerLevel">
+              <div class="number-btn number-btn-plus" onclick="incrementNumber('holesPerLevel')">+</div>
+            </div>
           </div>
           <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" data-for="generateLadders" checked id="generateLadders">
@@ -714,6 +822,94 @@
         // Initial state
         updateCustomNameVisibility();
         updateCustomNamePreview();
+      }
+      
+      // --- Custom Number Input Controls ---
+      window.incrementNumber = function(fieldName) {
+        const input = document.querySelector(`input[data-for="${fieldName}"]`);
+        if (!input) return;
+        
+        const current = parseInt(input.value) || 0;
+        const max = parseInt(input.getAttribute('max')) || Number.MAX_SAFE_INTEGER;
+        const step = parseInt(input.getAttribute('step')) || 1;
+        
+        if (current + step <= max) {
+          input.value = current + step;
+          // Trigger input event to update the maze
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          updateButtonStates(fieldName);
+        }
+      }
+      
+      window.decrementNumber = function(fieldName) {
+        const input = document.querySelector(`input[data-for="${fieldName}"]`);
+        if (!input) return;
+        
+        const current = parseInt(input.value) || 0;
+        const min = parseInt(input.getAttribute('min')) || Number.MIN_SAFE_INTEGER;
+        const step = parseInt(input.getAttribute('step')) || 1;
+        
+        if (current - step >= min) {
+          input.value = current - step;
+          // Trigger input event to update the maze
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          updateButtonStates(fieldName);
+        }
+      }
+      
+      function updateButtonStates(fieldName) {
+        const input = document.querySelector(`input[data-for="${fieldName}"]`);
+        if (!input) return;
+        
+        const current = parseInt(input.value) || 0;
+        const min = parseInt(input.getAttribute('min')) || Number.MIN_SAFE_INTEGER;
+        const max = parseInt(input.getAttribute('max')) || Number.MAX_SAFE_INTEGER;
+        const step = parseInt(input.getAttribute('step')) || 1;
+        
+        const inputGroup = input.closest('.number-input-group');
+        if (!inputGroup) return;
+        
+        const minusBtn = inputGroup.querySelector('.number-btn-minus');
+        const plusBtn = inputGroup.querySelector('.number-btn-plus');
+        
+        // Update minus button state
+        if (minusBtn) {
+          if (current - step < min) {
+            minusBtn.classList.add('disabled');
+          } else {
+            minusBtn.classList.remove('disabled');
+          }
+        }
+        
+        // Update plus button state
+        if (plusBtn) {
+          if (current + step > max) {
+            plusBtn.classList.add('disabled');
+          } else {
+            plusBtn.classList.remove('disabled');
+          }
+        }
+      }
+      
+      // Initialize button states for all number inputs
+      const numberInputs = document.querySelectorAll('input[type="number"][data-for]');
+      numberInputs.forEach(input => {
+        const fieldName = input.getAttribute('data-for');
+        updateButtonStates(fieldName);
+        
+        // Update button states when input value changes
+        input.addEventListener('input', () => updateButtonStates(fieldName));
+      });
+      
+      // --- Reset to Default Button ---
+      const resetBtn = document.getElementById('resetBtn');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+          // Show confirmation dialog
+          if (confirm('Are you sure you want to reset all settings to default values? This will refresh the page and all changes will be lost.')) {
+            location.reload();
+          }
+        });
       }
     });
   </script>
