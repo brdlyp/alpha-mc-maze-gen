@@ -329,12 +329,15 @@ export class DisplayManager {
     return tooltip;
   }
   
-  renderTreeView(): string {
+  renderLevelPagination(): string {
     if (!this.mazeGenerator) return '';
     let html = '';
     for (let i = 0; i < this.mazeGenerator.levels; i++) {
       const activeClass = i === this.mazeGenerator.currentLevel ? 'active' : '';
-      html += `<div class="tree-item ${activeClass}" onclick="selectLevel(${i})">Level ${i + 1}</div>`;
+      const ariaCurrent = i === this.mazeGenerator.currentLevel ? ' aria-current="page"' : '';
+      html += `<li class="page-item ${activeClass}">
+        <a class="page-link" href="#" onclick="selectLevel(${i})"${ariaCurrent}>${i + 1}</a>
+      </li>`;
     }
     return html;
   }

@@ -68,8 +68,8 @@ export class UIControls {
     
     mazeDisplay.innerHTML = html;
     
-    // Update tree view
-    this.updateTreeView();
+    // Update level pagination
+    this.updateLevelPagination();
     this.updateLevelControls();
     
     // Show/hide chunk overlay
@@ -80,23 +80,63 @@ export class UIControls {
     this.updateCustomNamePreview();
   }
 
-  updateTreeView() {
+  updateLevelPagination() {
     if (!this.mazeGenerator) return;
     
-    const treeView = document.getElementById('treeView');
-    if (treeView) {
-      treeView.innerHTML = this.displayManager.renderTreeView();
+    const pagination = document.getElementById('levelPagination');
+    if (pagination) {
+      // Get the level pagination items
+      const levelPaginationItems = this.displayManager.renderLevelPagination();
+      
+      // Find the Previous button and Next button elements
+      const prevBtn = pagination.querySelector('#prevBtn');
+      const nextBtn = pagination.querySelector('#nextBtn');
+      
+      if (prevBtn && nextBtn) {
+        // Clear existing level items (everything between prev and next)
+        const prevParent = prevBtn.parentElement;
+        const nextParent = nextBtn.parentElement;
+        
+        // Remove all level page items (keep only prev and next)
+        const allItems = Array.from(pagination.children);
+        allItems.forEach(item => {
+          if (item !== prevParent && item !== nextParent) {
+            item.remove();
+          }
+        });
+        
+        // Insert level items before the next button
+        if (nextParent) {
+          nextParent.insertAdjacentHTML('beforebegin', levelPaginationItems);
+        }
+      }
     }
     
-    const currentLevel = document.getElementById('currentLevel');
-    const totalLevels = document.getElementById('totalLevels');
-    if (currentLevel) currentLevel.textContent = (this.mazeGenerator.currentLevel + 1).toString();
-    if (totalLevels) totalLevels.textContent = this.mazeGenerator.levels.toString();
-    
+    // Update button states
     const prevBtn = document.getElementById('prevBtn') as HTMLButtonElement;
     const nextBtn = document.getElementById('nextBtn') as HTMLButtonElement;
-    if (prevBtn) prevBtn.disabled = this.mazeGenerator.currentLevel === 0;
-    if (nextBtn) nextBtn.disabled = this.mazeGenerator.currentLevel === this.mazeGenerator.levels - 1;
+    const prevParent = prevBtn?.parentElement;
+    const nextParent = nextBtn?.parentElement;
+    
+    if (prevParent) {
+      if (this.mazeGenerator.currentLevel === 0) {
+        prevParent.classList.add('disabled');
+        prevBtn.setAttribute('tabindex', '-1');
+      } else {
+        prevParent.classList.remove('disabled');
+        prevBtn.removeAttribute('tabindex');
+      }
+    }
+    
+    if (nextParent) {
+      if (this.mazeGenerator.currentLevel === this.mazeGenerator.levels - 1) {
+        nextParent.classList.add('disabled');
+        nextBtn.setAttribute('tabindex', '-1');
+      } else {
+        nextParent.classList.remove('disabled');
+        nextBtn.removeAttribute('tabindex');
+      }
+    }
   }
 
   updateLevelControls() {
