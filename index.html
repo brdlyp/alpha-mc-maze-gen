@@ -353,147 +353,178 @@
   
   <!-- Sidebar Container -->
   <div class="sidebar-container" id="sidebarContainer">
-        <div class="card mb-3">
-          <div class="card-body">
-            <div class="mb-3">
-              <label class="form-label"><strong>Width (in paths):</strong></label>
-              <input class="form-control" step="5" min="10" max="100" value="20" type="number" data-for="width">
-            </div>
-            <div class="mb-3">
-              <label class="form-label"><strong>Height (in paths):</strong></label>
-              <input class="form-control" step="5" min="10" max="100" value="20" type="number" data-for="height">
-            </div>
-            <div class="mb-3">
-              <label class="form-label"><strong>Levels:</strong></label>
-              <input class="form-control" min="1" max="20" value="3" type="number" data-for="levels">
-            </div>
-            <div class="mb-3">
-              <strong>Dimensions (blocks):</strong>
-              <span data-show="dimensions"></span>
-            </div>
+    <!-- Version -->
+    <div class="mb-3">
+      <small class="text-muted">Version: 2.0.244</small>
+    </div>
+    <!-- Maze Generation Buttons -->
+    <div class="card mb-3">
+      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#collapseGenBtns" aria-expanded="true" style="cursor:pointer;">
+        Maze Generation Buttons
+      </div>
+      <div id="collapseGenBtns" class="collapse show">
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <button class="btn btn-info" id="refreshBtn">Refresh Maze View</button>
+            <button class="btn btn-warning" id="regenerateBtn">Regenerate Maze</button>
           </div>
         </div>
-        <div class="card mb-3">
-          <div class="card-body">
-            <div class="mb-3">
-              <label class="form-label"><strong>Wall width:</strong></label>
-              <input class="form-control" min="1" max="5" value="1" type="number" data-for="wallSize">
-            </div>
-            <div class="mb-3">
-              <label class="form-label"><strong>Wall height:</strong></label>
-              <input class="form-control" min="1" max="50" value="3" type="number" data-for="wallHeight">
-            </div>
-            <div class="mb-3">
-              <label class="form-label"><strong>Path width:</strong></label>
-              <input class="form-control" min="1" max="5" value="1" type="number" data-for="walkSize">
-            </div>
-            <div class="mb-3">
-              <label class="form-label"><strong>Wall block:</strong></label>
-              <input class="form-control" value="stone" data-for="block">
-            </div>
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" data-for="addRoof" id="addRoof">
-              <label class="form-check-label" for="addRoof">
-                Add ceiling/roof on top of maze
-              </label>
-            </div>
+      </div>
+    </div>
+    <!-- Maze Dimensions -->
+    <div class="card mb-3">
+      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#collapseDimensions" aria-expanded="true" style="cursor:pointer;">
+        Maze Dimensions
+      </div>
+      <div id="collapseDimensions" class="collapse show">
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label"><strong>Width (in paths):</strong></label>
+            <input class="form-control" step="5" min="10" max="100" value="20" type="number" data-for="width">
+          </div>
+          <div class="mb-3">
+            <label class="form-label"><strong>Height (in paths):</strong></label>
+            <input class="form-control" step="5" min="10" max="100" value="20" type="number" data-for="height">
+          </div>
+          <div class="mb-3">
+            <label class="form-label"><strong>Levels:</strong></label>
+            <input class="form-control" min="1" max="20" value="3" type="number" data-for="levels">
           </div>
         </div>
-        <!-- Maze Options (new) -->
-        <div class="card mb-3">
-          <div class="card-body">
-            <h6 class="card-title">Holes and Ladders Settings</h6>
-            <div id="holeOptionsWrapper">
-              <div class="form-check mb-3">
-                <input class="form-check-input" type="checkbox" data-for="generateHoles" checked id="generateHoles">
-                <label class="form-check-label" for="generateHoles" id="generateHolesLabel">
-                  Generate holes between levels
-                </label>
-              </div>
-              <div class="mb-3" id="holesPerLevelField">
-                <label class="form-label">Number of holes per level</label>
-                <input class="form-control" type="number" min="1" max="100" value="1" data-for="holesPerLevel">
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" data-for="generateLadders" checked id="generateLadders">
-                <label class="form-check-label" for="generateLadders">
-                  Generate ladders for holes
-                </label>
-              </div>
-            </div>
+      </div>
+    </div>
+    <!-- Wall & Path Settings -->
+    <div class="card mb-3">
+      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#collapseWallPath" aria-expanded="true" style="cursor:pointer;">
+        Wall & Path Settings
+      </div>
+      <div id="collapseWallPath" class="collapse show">
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label"><strong>Wall Width:</strong></label>
+            <input class="form-control" min="1" max="5" value="1" type="number" data-for="wallSize">
+          </div>
+          <div class="mb-3">
+            <label class="form-label"><strong>Wall Height:</strong></label>
+            <input class="form-control" min="1" max="50" value="3" type="number" data-for="wallHeight">
+          </div>
+          <div class="mb-3">
+            <label class="form-label"><strong>Path Width:</strong></label>
+            <input class="form-control" min="1" max="5" value="1" type="number" data-for="walkSize">
+          </div>
+          <div class="mb-3">
+            <label class="form-label"><strong>Wall Block:</strong></label>
+            <input class="form-control" value="stone" data-for="block">
+          </div>
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" data-for="addRoof" id="addRoof">
+            <label class="form-check-label" for="addRoof">
+              Add ceiling to top level of maze
+            </label>
           </div>
         </div>
-        <!-- End Maze Options -->
-        <div class="card mb-3">
-          <div class="card-body">
-            <h6 class="card-title">File naming options</h6>
-            <div class="form-check mb-2">
-              <input class="form-check-input" type="radio" name="naming" value="simple" checked id="simpleNaming">
-              <label class="form-check-label" for="simpleNaming">
-                Simple: maze.mcfunction
-              </label>
-            </div>
-            <div class="form-check mb-2">
-              <input class="form-check-input" type="radio" name="naming" value="detailed" id="detailedNaming">
-              <label class="form-check-label" for="detailedNaming">
-                Detailed: <span data-show="detailed-name">20x20maze-ww2wh4pw2wbstone.mcfunction</span>
-              </label>
-            </div>
-            <div class="form-check mb-2">
-              <input class="form-check-input" type="radio" name="naming" value="custom" id="customNaming">
-              <label class="form-check-label" for="customNaming">
-                Custom name:
-              </label>
-            </div>
-            <input class="form-control mb-2" placeholder="Enter custom name" data-for="customName">
-            <div class="form-text" id="customNamePreview" style="display: none;">Preview: <span id="customNameText"></span>.mcfunction</div>
+      </div>
+    </div>
+    <!-- Holes & Ladders Settings -->
+    <div class="card mb-3">
+      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#collapseHolesLadders" aria-expanded="true" style="cursor:pointer;">
+        Holes & Ladders Settings
+      </div>
+      <div id="collapseHolesLadders" class="collapse show">
+        <div class="card-body">
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" data-for="generateHoles" checked id="generateHoles">
+            <label class="form-check-label" for="generateHoles">
+              Generate holes
+            </label>
+          </div>
+          <div class="mb-3" id="holesPerLevelField">
+            <label class="form-label">Number of holes per level</label>
+            <input class="form-control" type="number" min="1" max="100" value="1" data-for="holesPerLevel">
+          </div>
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" data-for="generateLadders" checked id="generateLadders">
+            <label class="form-check-label" for="generateLadders">
+              Generate ladders for holes
+            </label>
           </div>
         </div>
-        <div class="card mb-3">
-          <div class="card-body">
-            <h6 class="card-title">Visual Aids</h6>
-            <div class="form-check mb-2">
-              <input class="form-check-input" type="checkbox" data-for="showBlockLegend" checked id="showBlockLegend">
-              <label class="form-check-label" for="showBlockLegend">
-                Show Block Legend
-              </label>
-            </div>
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" data-for="showChunkBorders" id="showChunkBorders">
-              <label class="form-check-label" for="showChunkBorders">
-                Show Chunk Borders
-              </label>
-            </div>
+      </div>
+    </div>
+    <!-- File Export Options -->
+    <div class="card mb-3">
+      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#collapseFileExport" aria-expanded="true" style="cursor:pointer;">
+        File Export Options
+      </div>
+      <div id="collapseFileExport" class="collapse show">
+        <div class="card-body">
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="radio" name="naming" value="simple" checked id="simpleNaming">
+            <label class="form-check-label" for="simpleNaming">
+              Simple: 'maze.mcfunction'
+            </label>
+          </div>
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="radio" name="naming" value="detailed" id="detailedNaming">
+            <label class="form-check-label" for="detailedNaming">
+              Detailed: <span data-show="detailed-name">20x20maze-ww2wh4pw2wbstone.mcfunction</span>
+            </label>
+          </div>
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="radio" name="naming" value="custom" id="customNaming">
+            <label class="form-check-label" for="customNaming">
+              Custom Name
+            </label>
+          </div>
+          <input class="form-control mb-2" placeholder="Enter a custom name" id="customNameInput" data-for="customName" style="display:none;">
+          <div class="form-text" id="customNamePreview" style="display:none;">Preview: <span id="customNameText"></span>.mcfunction</div>
+          <div class="d-grid gap-2 mt-3">
+            <button class="btn btn-primary" id="downloadBtn">Download mcfunction file</button>
           </div>
         </div>
-        <div class="card mb-3">
-          <div class="card-body">
-            <div class="d-grid gap-2">
-              <button class="btn btn-info" id="refreshBtn">Refresh</button>
-              <button class="btn btn-warning" id="regenerateBtn">Regenerate</button>
-              <button class="btn btn-primary" id="downloadBtn">Download function</button>
-            </div>
+      </div>
+    </div>
+    <!-- Visual Aids -->
+    <div class="card mb-3">
+      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#collapseVisualAids" aria-expanded="true" style="cursor:pointer;">
+        Visual Aids
+      </div>
+      <div id="collapseVisualAids" class="collapse show">
+        <div class="card-body">
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" data-for="showBlockLegend" checked id="showBlockLegend">
+            <label class="form-check-label" for="showBlockLegend">
+              Show Block Legend
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" data-for="showChunkBorders" id="showChunkBorders">
+            <label class="form-check-label" for="showChunkBorders">
+              Show chunk borders
+            </label>
           </div>
         </div>
-        <div class="card mb-3">
-          <div class="card-body">
-            <small class="text-muted">Version: 2.0.234</small>
+      </div>
+    </div>
+    <!-- Credits -->
+    <div class="card mb-3">
+      <div class="card-header" data-bs-toggle="collapse" data-bs-target="#collapseCredits" aria-expanded="true" style="cursor:pointer;">
+        Credits
+      </div>
+      <div id="collapseCredits" class="collapse show">
+        <div class="card-body">
+          <div class="small">
+            <p><strong>Bibliofile</strong> - For the original codebase I forked and built on top of. Their work provided the foundation for the maze generation logic, TypeScript implementation, and the basic UI structure that I've enhanced and extended.<br>
+            <a href="https://github.com/Bibliofile/MinecraftMazeGenerator" target="_blank">github.com/Bibliofile/MinecraftMazeGenerator</a></p>
+            
+            <p><strong>Jamis Buck</strong> - For the maze generator example and inspiration. His work on maze algorithms, particularly the Growing Tree algorithm, provided the theoretical foundation and implementation ideas that influenced the maze generation approach used in this project. His blog posts and examples were instrumental in understanding maze generation techniques.<br>
+            <a href="https://weblog.jamisbuck.org/" target="_blank">weblog.jamisbuck.org</a><br>
+            <a href="https://jamisbuck.org/mazes/minecraft.html#" target="_blank">Minecraft Maze Generator</a><br>
+            <a href="https://weblog.jamisbuck.org/2011/1/27/maze-generation-growing-tree-algorithm" target="_blank">Growing Tree Algorithm</a></p>
           </div>
         </div>
-        <div class="card mb-3">
-          <div class="card-body">
-            <h6 class="card-title">Credits</h6>
-            <div class="small">
-              <p><strong>Bibliofile</strong> - For the original codebase I forked and built on top of. Their work provided the foundation for the maze generation logic, TypeScript implementation, and the basic UI structure that I've enhanced and extended.<br>
-              <a href="https://github.com/Bibliofile/MinecraftMazeGenerator" target="_blank">github.com/Bibliofile/MinecraftMazeGenerator</a></p>
-              
-              <p><strong>Jamis Buck</strong> - For the maze generator example and inspiration. His work on maze algorithms, particularly the Growing Tree algorithm, provided the theoretical foundation and implementation ideas that influenced the maze generation approach used in this project. His blog posts and examples were instrumental in understanding maze generation techniques.<br>
-              <a href="https://weblog.jamisbuck.org/" target="_blank">weblog.jamisbuck.org</a><br>
-              <a href="https://jamisbuck.org/mazes/minecraft.html#" target="_blank">Minecraft Maze Generator</a><br>
-              <a href="https://weblog.jamisbuck.org/2011/1/27/maze-generation-growing-tree-algorithm" target="_blank">Growing Tree Algorithm</a></p>
-            </div>
-          </div>
-        </div>
+      </div>
+    </div>
   </div>
   
   <!-- Main Content -->
@@ -652,6 +683,48 @@
           sidebarOverlay.classList.add('show');
         }
       });
+
+      // --- File Export Options: Custom Name Logic ---
+      const simpleRadio = document.getElementById('simpleNaming');
+      const detailedRadio = document.getElementById('detailedNaming');
+      const customRadio = document.getElementById('customNaming');
+      const customNameInput = document.getElementById('customNameInput');
+      const customNamePreview = document.getElementById('customNamePreview');
+      const customNameText = document.getElementById('customNameText');
+      
+      function updateCustomNameVisibility() {
+        if (customRadio && customRadio.checked) {
+          if (customNameInput) customNameInput.style.display = 'block';
+          if (customNamePreview) customNamePreview.style.display = 'block';
+          // Focus the input when it becomes visible
+          if (customNameInput) setTimeout(() => customNameInput.focus(), 100);
+        } else {
+          if (customNameInput) customNameInput.style.display = 'none';
+          if (customNamePreview) customNamePreview.style.display = 'none';
+        }
+      }
+      
+      function updateCustomNamePreview() {
+        if (!customNameInput || !customNameText) return;
+        const value = customNameInput.value.trim();
+        customNameText.textContent = value || 'maze';
+      }
+      
+      if (simpleRadio && detailedRadio && customRadio && customNameInput && customNamePreview && customNameText) {
+        simpleRadio.addEventListener('change', updateCustomNameVisibility);
+        detailedRadio.addEventListener('change', updateCustomNameVisibility);
+        customRadio.addEventListener('change', updateCustomNameVisibility);
+        
+        // Multiple event types to ensure preview updates
+        customNameInput.addEventListener('input', updateCustomNamePreview);
+        customNameInput.addEventListener('keyup', updateCustomNamePreview);
+        customNameInput.addEventListener('paste', () => setTimeout(updateCustomNamePreview, 10));
+        customNameInput.addEventListener('change', updateCustomNamePreview);
+        
+        // Initial state
+        updateCustomNameVisibility();
+        updateCustomNamePreview();
+      }
     });
   </script>
   

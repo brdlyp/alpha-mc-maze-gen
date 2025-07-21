@@ -878,11 +878,10 @@
           if (addRoof)
               suffix = '-wceiling';
           const filename = `${width}x${height}x${levels}maze-ww${wallSize}wh${wallHeight}pw${walkSize}wb${block}${suffix}.mcfunction`;
-          const customNamePreview = document.getElementById('customNamePreview');
-          const customNameText = document.getElementById('customNameText');
-          if (customNamePreview && customNameText) {
-              customNamePreview.textContent = filename;
-              customNameText.placeholder = filename;
+          // Update the detailed name span in the radio button label
+          const detailedNameSpan = document.querySelector('[data-show="detailed-name"]');
+          if (detailedNameSpan) {
+              detailedNameSpan.textContent = filename;
           }
       }
       // Update custom name preview
@@ -905,7 +904,8 @@
           const inputs = document.querySelectorAll('input, select');
           inputs.forEach(input => {
               const dataFor = input.getAttribute('data-for');
-              if (dataFor && dataFor in config) {
+              // Skip file export options to prevent unnecessary maze regeneration
+              if (dataFor && dataFor in config && !this.isFileExportOption(input)) {
                   if (input.type === 'checkbox') {
                       config[dataFor] = input.checked;
                   }
@@ -922,22 +922,42 @@
           this.updateDetailedFilename();
           this.updateCustomNamePreview();
       }
+      // Helper function to identify file export options
+      isFileExportOption(input) {
+          const inputId = input.id;
+          return inputId === 'simpleNaming' ||
+              inputId === 'detailedNaming' ||
+              inputId === 'customNaming' ||
+              inputId === 'customNameInput';
+      }
       // Configuration update handler
       onConfigChange() {
-          // Check if dimensions changed (requires full regeneration)
+          // Check if dimensions or hole settings changed (requires full regeneration)
           const currentWidth = config.width;
           const currentHeight = config.height;
           const currentLevels = config.levels;
+          const currentHolesPerLevel = config.holesPerLevel;
+          const currentGenerateHoles = config.generateHoles;
+          // Store previous values for comparison
+          const previousHolesPerLevel = this.mazeGenerator?.previousHolesPerLevel;
+          const previousGenerateHoles = this.mazeGenerator?.previousGenerateHoles;
           if (!this.mazeGenerator ||
               currentWidth !== this.mazeGenerator.width ||
               currentHeight !== this.mazeGenerator.height ||
-              currentLevels !== this.mazeGenerator.levels) {
-              // Dimensions changed - regenerate maze
+              currentLevels !== this.mazeGenerator.levels ||
+              currentHolesPerLevel !== previousHolesPerLevel ||
+              currentGenerateHoles !== previousGenerateHoles) {
+              // Dimensions or hole settings changed - regenerate maze
               this.drawDelay();
           }
           else {
               // Only visual options changed - just refresh display
               this.refreshDisplay();
+          }
+          // Store current values for next comparison
+          if (this.mazeGenerator) {
+              this.mazeGenerator.previousHolesPerLevel = currentHolesPerLevel;
+              this.mazeGenerator.previousGenerateHoles = currentGenerateHoles;
           }
       }
       // UI state management
@@ -950,13 +970,16 @@
       }
       // Initialize event listeners
       initializeEventListeners() {
-          // Input validation listeners
+          // Input validation listeners - exclude file export options
           const inputs = document.querySelectorAll('input, select');
           inputs.forEach(input => {
-              input.addEventListener('input', () => {
-                  this.validate();
-                  this.onConfigChange();
-              });
+              // Skip file export options to prevent maze regeneration
+              if (!this.isFileExportOption(input)) {
+                  input.addEventListener('input', () => {
+                      this.validate();
+                      this.onConfigChange();
+                  });
+              }
           });
           // Button event listeners
           document.getElementById('refreshBtn')?.addEventListener('click', () => this.refreshDisplay());
